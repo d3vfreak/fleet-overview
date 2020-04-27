@@ -23,6 +23,9 @@ margin-right:5px;
 #myChart{
   position:relative;
 }
+#past-login{
+  margin-top:100px;
+}
 #past-login,#systemFilter{display:none}
 #pre-login{
   height:100px;
