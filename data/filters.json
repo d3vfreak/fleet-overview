@@ -1,0 +1,10 @@
+{
+  "all": {
+    "Carriers": ["Archon", "Chimera", "Thanatos", "Nidhoggur"],
+    "Dreads": ["Revelation", "Phoenix", "Moros", "Naglfar"],
+    "Machariels": ["Machariel"]
+  },
+  "98422578": {
+    "Ventures": ["Venture"]
+  }
+}

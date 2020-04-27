@@ -1,0 +1,8 @@
+# Ignore everything
+
+*
+!.gitignore
+!package.json
+!index.html
+!assets
+

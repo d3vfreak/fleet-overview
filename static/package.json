@@ -1,0 +1,24 @@
+{
+  "license": "MIT",
+  "amd": {},
+  "scripts": {
+    "web": "./node_modules/volo/bin/volo"
+  },
+  "volo": {
+    "baseUrl": "assets",
+    "ignore": [
+      "*/*.json",
+      "*/samples",
+      "*.md"
+    ],
+    "dependencies": {
+      "Chart": "github:chartjs/Chart.js/v2.9.3",
+      "chartjs-plugin-piechart": "https://cdn.jsdelivr.net/npm/chartjs-plugin-piechart-outlabels",
+      "github-fork-ribbon-css": "https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css",
+      "socketio": "https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.slim.js"
+    }
+  },
+  "devDependencies": {
+    "volo": "^0.3.8"
+  }
+}

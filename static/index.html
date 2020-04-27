@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+  <title>Fleet Overview</title>
+  <link rel="stylesheet" type="text/css" href="assets/style.css"/>
+  <link rel="stylesheet" type="text/css" href="assets/github-fork-ribbon-css/gh-fork-ribbon.css"/>
+</head>
+<body>
+<a class="github-fork-ribbon" href="https://gitlab.com/techfreak/fleet-overview" data-ribbon="Fork me on Gitlab" title="Fork me on Gitlab">Fork me on Gitlab</a>
+  <div id="wrapper">
+    <div>
+    <select id="filter">
+      <option value="all" selected="all">All Ships</option>
+    </select>
+    <select id="systemFilter" disabled>
+      <option value="everySystem" selected="everySystem" disabled>All Systems</option>
+    </select>
+    </div>
+    <canvas id="myChart" width="400" height="200" ></canvas>
+  </div>
+  <footer>
+    <script type="text/javascript" charset="utf-8" src="assets/Chart.js"></script>
+    <script type="text/javascript" charset="utf-8" src="assets/chartjs-plugin-piechart.js"></script>
+    <script type="text/javascript" charset="utf-8" src="assets/socketio.js"></script>
+    <script type="text/javascript" charset="utf-8" src="assets/app.js"></script>
+  </footer>
+</body>
+</html>

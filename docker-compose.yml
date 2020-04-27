@@ -1,0 +1,21 @@
+version: "3"
+services:
+  fleet-overview:
+    container_name: 'fleet-overview'
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.fleet.loadbalancer.server.port=80"
+      - "traefik.http.routers.fleet.tls=true"
+      - "traefik.http.routers.fleet.rule=Host(`fleet-overview.alwaysbait.com`)"
+      - "traefik.http.routers.fleett.entrypoints=websecure"
+    networks:
+      - web
+networks:
+    web:
+       external: true
+

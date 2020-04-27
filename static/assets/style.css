@@ -1,0 +1,37 @@
+#wrapper{
+  display:flex;
+  /* position: relative;*/
+  /*height:40vh;*/
+  width:90vw;
+  margin:auto;
+  align-items: center;
+  /*justify-content: center;*/
+  flex-direction: column;
+}
+#alert{
+  display:none;
+  box-shadow: 5px 1px #000000;
+  /* display: flex;*/
+  justify-content: center;
+  align-items: center;
+  margin-top:50px;
+  text-align: center;
+  color:#fff;
+  width: 90vw;
+  height:10vh;
+  background: #485563; /* fallback for old browsers */
+  background: -webkit-linear-gradient(to right, #FF4136, #c4121e); /* Chrome 10-25, Safari 5.1-6 */
+  background: linear-gradient(to right, #FF4136, #c4121e); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+ */
+}
+#wrapper select{
+  height:40px;
+}
+#myChart{
+  height:50vh;
+  position:relative;
+}
+html{
+  background: #485563; /* fallback for old browsers */
+  background: -webkit-linear-gradient(to right, #485563, #29323c); /* Chrome 10-25, Safari 5.1-6 */
+  background: linear-gradient(to right, #485563, #29323c); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+ */
+}

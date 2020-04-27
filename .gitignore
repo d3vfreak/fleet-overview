@@ -1,0 +1,14 @@
+# Ignore everything
+*
+!data
+!.gitignore
+!package.json
+!index.ts
+!LICENSE.md
+!README.md
+!static
+!tsconfig.json
+!Dockerfile
+!docker-compose.yml
+# ...even if they are in subdirectories
+!SCREENSHOT.png
