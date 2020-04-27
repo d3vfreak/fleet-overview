@@ -1,6 +1,7 @@
 # Fleet Overview
 
 **Fleet Overview** is a web application that generates a real time chart of your current fleet composition.
+You can test out our live version [here](https://fleet-overview.alwaysbait.com/).
 
 ![alt text](SCREENSHOT.png "Screenshot")
 
