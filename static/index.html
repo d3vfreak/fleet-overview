@@ -3,19 +3,29 @@
   <title>Fleet Overview</title>
   <link rel="stylesheet" type="text/css" href="assets/style.css"/>
   <link rel="stylesheet" type="text/css" href="assets/github-fork-ribbon-css.css"/>
+  <link rel="stylesheet" type="text/css" href="assets/vesCss.css"/> 
+  <link rel="stylesheet" type="text/css" href="assets/vexThemePlain.css"/> 
+  <script charset="utf-8" src="assets/vex.js"></script>
 </head>
 <body>
   <a class="github-fork-ribbon" href="https://gitlab.com/techfreak/fleet-overview" data-ribbon="Fork me on Gitlab" title="Fork me on Gitlab">Fork me on Gitlab</a>
   <div id="wrapper">
-    <div>
-    <select id="filter">
-      <option value="all" selected="all">All Ships</option>
-    </select>
-    <select id="systemFilter" disabled>
-      <option value="everySystem" selected="everySystem" disabled>All Systems</option>
-    </select>
+
+    <div id="pre-login" class="box">
+      <button id="learnMore">Learn more</button>
     </div>
-    <canvas id="myChart" width="400" height="200" ></canvas>
+    <div id="past-login" class="box">
+      <div class="toolbar">
+	<button class="item" id="logout">Sign out</button>
+	<select id="filter" class="item">
+	  <option value="all" selected="all">All Ships</option>
+	</select>
+      </div>
+      <select id="systemFilter" disabled>
+	<option value="everySystem" selected="everySystem" disabled>All Systems</option>
+      </select>
+      <canvas id="myChart" width="400" height="200"   ></canvas>
+    </div>
   </div>
   <footer>
     <script type="text/javascript" charset="utf-8" src="assets/Chart.js"></script>

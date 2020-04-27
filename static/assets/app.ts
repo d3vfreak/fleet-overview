@@ -3,8 +3,10 @@ const ctx = document.getElementById('myChart');
 const url = window.location.href;
 const socket = io.connect(url);
 declare const Chart: any;
+declare const vex: any;
 const fleetDropdown = document.getElementById('filter');
 const systemDropdown = document.getElementById('systemFilter');
+
 const myChart = new Chart(ctx, {
   type: 'outlabeledPie',
   options: {
@@ -60,57 +62,87 @@ function delete_cookie(name) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
-SETUP: {
-  let players: Players = {};
-  let systems = {};
-  let fleet: API = {};
-  let filters;
-  const user = getCookie('user');
-  const hash = getCookie('hash');
-  if (user === false && hash === false) {
-    socket.emit('link', {});
-    socket.on('loginURL', (url) => {
-      console.log(url);
-      window.location.replace(url);
-    });
-    break SETUP;
-  }
-
-  socket.emit('login', { user: user, hash: hash });
-  //socket.emit('filters');
-  socket.on('clearCookies', () => {
-    delete_cookie('user');
-    delete_cookie('hash');
-    location.reload();
-  });
-
-  fleetDropdown.addEventListener('change', function () {
-    genUI(fleet, filters);
-  });
-
-  systemDropdown.addEventListener('change', function () {
-    genUI(fleet, filters);
-  });
-
-  socket.on('fleetUpdate', (data) => {
-    if (data === undefined) {
-      return;
-    }
-    genUI(data, filters);
-    fleet = data;
-  });
-
-  socket.on('filters', (data) => {
-    filters = data;
-    Object.keys(data).map((filter) => {
-      const option = document.createElement('option');
-      option.setAttribute('value', filter);
-      option.innerHTML = filter;
-      fleetDropdown.appendChild(option);
-    });
+function showInfo() {
+  vex.defaultOptions.className = 'vex-theme-plain';
+  vex.dialog.buttons.YES.text = 'Continue to login';
+  // vex.dialog.buttons.NO.text = 'Not interested.';
+  vex.dialog.open({
+    //message: 'Welcome to Fleet Overview',
+    input: `<span style="font-weight:bold">Welcome to Fleet Overview</span><br/>
+    Fleet Overview is a tool that gives you real time informations of your current fleet composition.<br/><br/>
+    You can sort your fleet by predefined filters and if you host this app yourself you can create your own filters.<br/><br/>
+      <span style="font-weight:bold">The app can only work if you are logged in and you have to be the fleet boss of your current fleet.</span>`,
+    callback: function (value) {
+      console.log(value);
+      if (value !== false) {
+        socket.emit('link', {});
+      }
+    },
   });
 }
+document.addEventListener('DOMContentLoaded', function () {
+  SETUP: {
+    let players: Players = {};
+    let systems = {};
+    let fleet: API = {};
+    let filters;
+    const user = getCookie('user');
+    const hash = getCookie('hash');
+    if (user === false && hash === false) {
+      document
+        .getElementById('learnMore')
+        .addEventListener('click', function () {
+          showInfo();
+        });
+      socket.on('loginURL', (url) => {
+        window.location.replace(url);
+      });
+      showInfo();
+      break SETUP;
+    }
 
+    socket.emit('login', { user: user, hash: hash });
+    //socket.emit('filters');
+    socket.on('clearCookies', () => {
+      delete_cookie('user');
+      delete_cookie('hash');
+      location.reload();
+    });
+    fleetDropdown.style.display = 'block';
+    document.getElementById('past-login').style.display = 'flex';
+    document.getElementById('pre-login').style.display = 'none';
+    fleetDropdown.addEventListener('change', function () {
+      genUI(fleet, filters);
+    });
+
+    document.getElementById('logout').addEventListener('click', function () {
+      delete_cookie('user');
+      delete_cookie('hash');
+      location.reload();
+    });
+    systemDropdown.addEventListener('change', function () {
+      genUI(fleet, filters);
+    });
+
+    socket.on('fleetUpdate', (data) => {
+      if (data === undefined) {
+        return;
+      }
+      genUI(data, filters);
+      fleet = data;
+    });
+
+    socket.on('filters', (data) => {
+      filters = data;
+      Object.keys(data).map((filter) => {
+        const option = document.createElement('option');
+        option.setAttribute('value', filter);
+        option.innerHTML = filter;
+        fleetDropdown.appendChild(option);
+      });
+    });
+  }
+});
 async function apiCall(route: string) {
   const resp = await fetch(`https://esi.evetech.net/latest/${route}`);
   return await resp.json();
@@ -143,18 +175,18 @@ function setupChart(
 ): void {
   let ships = Object.keys(data);
   /* if (systems[systemsFilter] !== undefined) {
-    for (const ship of ships) {
-      for (const pilot of Object.keys(data[ship])) {
-        if (
-          data[ship][parseInt(pilot)].solar_system_id ===
-          parseInt(systemsFilter)
-        ) {
-          delete data[ship][parseInt(pilot)];
-        }
-      }
-    }
-  }
-*/
+     for (const ship of ships) {
+     for (const pilot of Object.keys(data[ship])) {
+     if (
+     data[ship][parseInt(pilot)].solar_system_id ===
+     parseInt(systemsFilter)
+     ) {
+     delete data[ship][parseInt(pilot)];
+     }
+     }
+     }
+     }
+   */
   if (fleetTypes[fleetType] !== undefined) {
     const filter = new Set(fleetTypes[fleetType]);
     ships = ships.filter((x) => filter.has(x));

@@ -2,35 +2,62 @@
   display:flex;
   /* position: relative;*/
   /*height:40vh;*/
-  width:90vw;
-  margin:auto;
-  align-items: center;
-  /*justify-content: center;*/
+  height:90vw;
+  width:99vw;
+  justify-content: center; /* center items vertically, in this case */
+  align-items: center;    
   flex-direction: column;
+  border-radius: 1%;
 }
-#alert{
-  display:none;
-  box-shadow: 5px 1px #000000;
-  /* display: flex;*/
-  justify-content: center;
-  align-items: center;
-  margin-top:50px;
-  text-align: center;
-  color:#fff;
-  width: 90vw;
-  height:10vh;
-  background: #485563; /* fallback for old browsers */
-  background: -webkit-linear-gradient(to right, #FF4136, #c4121e); /* Chrome 10-25, Safari 5.1-6 */
-  background: linear-gradient(to right, #FF4136, #c4121e); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+ */
+.toolbar{
+  align-items: center;    
+  display:grid;
+  grid-template-columns: 120px 120px;
 }
-#wrapper select{
-  height:40px;
+.item,#learnMore{
+height: 40px;
+margin-top:4px;
+margin-right:5px;
 }
+
 #myChart{
-  height:50vh;
   position:relative;
 }
+#past-login,#systemFilter{display:none}
+#pre-login{
+  height:100px;
+  display: flex;
+  justify-content: center; /* center items vertically, in this case */
+  align-items: center;    
+}
+button,select{
+  background-image: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
+  border: none;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+}
+.box{
+  width:85vw;
+  height:auto;
+  border-radius: 1%;
+  display:flex;
+  align-items: center;    
+  flex-direction: column;
+background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+#myChart{
+  margin-top:10px;
+background:#3d3d3d;
+}
+
+
 html{
+  height:100%;
+  width: 100%;
+  background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
   background: #485563; /* fallback for old browsers */
   background: -webkit-linear-gradient(to right, #485563, #29323c); /* Chrome 10-25, Safari 5.1-6 */
   background: linear-gradient(to right, #485563, #29323c); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+ */
