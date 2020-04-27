@@ -190,14 +190,17 @@ async function getFleet(refreshToken: string): Promise<Composition> {
     squad: number;
     wing: number;
   }
-  const currentFleet: ActiveFleet = (
-    await handleErr(
-      esi.apis.Fleets.get_characters_character_id_fleet({
+
+  let currentFleet = undefined;
+  try {
+    currentFleet = (
+      await esi.apis.Fleets.get_characters_character_id_fleet({
         character_id: sso.CharacterID,
-      }),
-      `Getting fleet of player failed`
-    )
-  ).body;
+      })
+    ).body;
+  } catch (e) {
+    //
+  }
 
   const comp: Composition = {};
   if (currentFleet === undefined) {
