@@ -15,10 +15,14 @@
       "Chart": "github:chartjs/Chart.js/v2.9.3",
       "chartjs-plugin-piechart": "https://cdn.jsdelivr.net/npm/chartjs-plugin-piechart-outlabels",
       "github-fork-ribbon-css": "https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css",
-      "socketio": "https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.slim.js"
+      "socketio": "https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.slim.js",
+      "vex": "https://raw.githubusercontent.com/HubSpot/vex/master/dist/js/vex.combined.min.js",
+      "vesCss": "https://raw.githubusercontent.com/HubSpot/vex/master/dist/css/vex.css",
+      "vexThemePlain": "https://raw.githubusercontent.com/HubSpot/vex/master/dist/css/vex-theme-plain.css"
     }
   },
   "devDependencies": {
     "volo": "^0.3.8"
   }
 }
+
