@@ -76,6 +76,13 @@ async function generateToken(tempToken: string): Promise<any> {
   return token.body;
 }
 
+/**
+ * Returns the sso information including the account name of the owner of the token.
+ *
+ * @async
+ * @param {string} accToken - The access token.
+ * @return {Promise<any>} Object with sso information.
+ */
 async function verifyToken(accToken: string): Promise<any> {
   // eslint-disable-next-line
   const token = await handleErr(
@@ -160,22 +167,20 @@ interface FleetMemberData {
 }
 
 /**
- * Return the current fleet composition of the logged in character.
- *
+ * Function that connect to the esi with the correct headers
  * @async
- * @return {Promise<Composition>} Promise with composition.
+ * @param {string} - refreshToken for the authentification
+ * @return {any} Swagger client object with the eve esi endpoints
  */
-async function getFleet(refreshToken: string): Promise<Composition> {
-  /* eslint-disable @typescript-eslint/camelcase */
+async function connectToEsi(refreshToken: string) {
   const tokenData: Token = await auth(refreshToken);
   if (tokenData.access_token === undefined) {
     return {};
   }
 
   const token = tokenData.access_token;
-  const sso = await handleErr(verifyToken(tokenData.access_token), 'SSO Test');
   const esi = await handleErr(
-    Swagger('https://esi.evetech.net/latest/swagger.json', {
+    Swagger('https://esi.evetech.net/dev/swagger.json', {
       requestInterceptor: (req) => {
         req.headers.Authorization = `Bearer ${token}`;
         return req;
@@ -183,38 +188,38 @@ async function getFleet(refreshToken: string): Promise<Composition> {
     }),
     'Swagger error'
   );
+  return esi;
+}
 
+/**
+ * Return the current fleet composition of the logged in character.
+ *
+ * @async
+ * @return {Promise<Composition>} Promise with composition.
+ */
+async function getFleet(user, currentFleet): Promise<Composition> {
+  /* eslint-disable @typescript-eslint/camelcase */
+
+  const esi = await connectToEsi(user.refresh_token);
   interface ActiveFleet {
     fleet_id: number;
     role: string;
     squad: number;
     wing: number;
   }
-
-  let currentFleet = undefined;
-  try {
-    currentFleet = (
-      await esi.apis.Fleets.get_characters_character_id_fleet({
-        character_id: sso.CharacterID,
-      })
-    ).body;
-  } catch (e) {
-    //
-  }
-
   const comp: Composition = {};
-  if (currentFleet === undefined) {
+  if (currentFleet === undefined || currentFleet.fleet_boss_id !== user.id) {
+    console.log('test1000');
     return comp;
   }
   const currentFleetId: number = currentFleet.fleet_id;
-  const fleet: Array<FleetMemberData> = (
-    await handleErr(
-      esi.apis.Fleets.get_fleets_fleet_id_members({
-        fleet_id: currentFleetId,
-      }),
-      'Getting members of current fleet failed.'
-    )
-  ).body;
+  let fleet = await handleErr(
+    esi.apis.Fleets.get_fleets_fleet_id_members({
+      fleet_id: currentFleetId,
+    }),
+    'Getting members of current fleet failed.'
+  );
+  fleet = fleet.body;
 
   const eve = JSON.parse(
     await fs.promises.readFile('./data/eve.json', {
@@ -253,6 +258,12 @@ async function getFleet(refreshToken: string): Promise<Composition> {
   return comp;
 }
 
+/**
+ * Reads the data/filters.json file and returns it as a json object.
+ *
+ * @async
+ * @return {[TODO:type]} [TODO:description]
+ */
 async function fleetFilters() {
   const filters = JSON.parse(
     await fs.promises.readFile('./data/filters.json', { encoding: 'utf-8' })
@@ -260,7 +271,14 @@ async function fleetFilters() {
   return filters;
 }
 
-async function getPublicInfo(playerID) {
+/**
+ * Gets the public info of an eve player
+ *
+ * @async
+ * @param {number} playerID - eve player id
+ * @return {object} object with the player data
+ */
+async function getPublicInfo(playerID: number) {
   const info = await handleErr(
     needle(
       'get',
@@ -274,6 +292,9 @@ async function getPublicInfo(playerID) {
 }
 server.listen(3000);
 app.use('/', express.static(path.join(__dirname, 'static')));
+/*
+   Register account callback that generates a login token and cookie and saves it in the data/tokens.json.
+*/
 app.use('/callback/', (req, res) => {
   const code = req.query.code;
   if (code === undefined || code === '') {
@@ -298,11 +319,18 @@ app.use('/callback/', (req, res) => {
     );
     if (db[user.CharacterName] === undefined) {
       const info = await getPublicInfo(user.CharacterID);
+
+      const sso = await handleErr(
+        verifyToken(token.access_token),
+        'Getting CharacterID failed'
+      );
+
       db[user.CharacterName] = {
         refresh_token: rfToken,
         hash: hash,
         alliance: info.alliance_id,
         corp: info.corporation_id,
+        id: sso.CharacterID,
       };
     } else {
       db[user.CharacterName].refresh_token = rfToken;
@@ -323,9 +351,82 @@ app.use('/callback/', (req, res) => {
   })();
 });
 
-let timers = {};
-(async function () {
+/**
+ * Function that removes setInterval timer on socket disconnect
+ *
+ * @param {[TODO:type]} socket - [TODO:description]
+ * @param {object} timer - setInterval timer
+ * @return {void}
+ */
+function removeTimerOnDisconnect(socket, timer) {
+  if (socket.disconnected === true) {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Function that is getting called when the player is in a fleet.
+ * @async
+ * @param {any} currentFleet - [TODO:description]
+ * @param {[TODO:type]} socket - [TODO:description]
+ * @param {[TODO:type]} user - [TODO:description]
+ * @param {[TODO:type]} timers - [TODO:description]
+ * @return {[TODO:type]} [TODO:description]
+ */
+async function fleetCheck(currentFleet: any, socket, user, timers) {
+  removeTimerOnDisconnect(socket, timers[user].fleetTime);
+
+  console.log('getting fleet members');
+  const genChartData = await getFleet(user, currentFleet);
+  socket.emit('fleetUpdate', genChartData);
+}
+
+/**
+ * Function that checks if player is in a fleet. If he is an a fleet it will start a loop to check the fleet members.
+ *
+ * @async
+ * @param {[TODO:type]} socket - [TODO:description]
+ * @param {[TODO:type]} timers - [TODO:description]
+ * @param {[TODO:type]} user - [TODO:description]
+ * @return {[TODO:type]} [TODO:description]
+ */
+async function checkIfPlayerIsInFleet(socket, timers, user) {
+  removeTimerOnDisconnect(socket, timers[user].inFleet);
+  console.log('checking if player is in a fleet.');
+
+  let currentFleet = undefined;
+  try {
+    const esi = await connectToEsi(user.refresh_token);
+    currentFleet = (
+      await esi.apis.Fleets.get_characters_character_id_fleet({
+        character_id: user.id,
+      })
+    ).body;
+
+    fleetCheck(currentFleet, socket, user, timers);
+    if (timers[user].fleetTime === undefined) {
+      const timer = setInterval(() => {
+        fleetCheck(currentFleet, socket, user, timers);
+      }, 5000);
+      timers[user].fleetTime = timer;
+    }
+  } catch (e) {
+    if (timers[user].fleetTime !== undefined) {
+      clearTimeout(timers[db[user]].fleetTime);
+    }
+  }
+}
+
+/**
+ * Function that sets up the callbacks.
+ *
+ * @async
+ * @return {[TODO:type]} [TODO:description]
+ */
+async function run() {
   const filters = await fleetFilters();
+  let timers = {};
+
   db = JSON.parse(
     await fs.promises.readFile('./data/tokens.json', {
       encoding: 'utf-8',
@@ -350,16 +451,14 @@ let timers = {};
           ? filters['all']
           : filters[db[auth.user].corp];
       socket.emit('filters', sendFilters);
-      const fleetCheck = async () => {
-        if (socket.disconnected === true) {
-          clearTimeout(timers[db[auth.user]]);
-        }
-        const genChartData = await getFleet(db[auth.user].refresh_token);
-        socket.emit('fleetUpdate', genChartData);
-      };
-      //fleetCheck();
-      const timer = setInterval(fleetCheck, 5000);
-      timers[db[auth.user]] = timer;
+
+      const timer = setInterval(() => {
+        checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
+      }, 60000);
+      timers[db[auth.user]] = { inFleet: timer, fleetTime: undefined };
+      checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
     });
   });
-})();
+}
+
+run();
