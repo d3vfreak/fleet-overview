@@ -1,6 +1,7 @@
 # Ignore everything
 
 *
+!favicon.ico
 !.gitignore
 !package.json
 !index.html
