@@ -224,7 +224,8 @@ async function getFleet(user, currentFleet): Promise<Fleet> {
     'Getting members of current fleet failed.'
   );
   if (fleet.body === undefined) {
-    return result;
+    return Promise.reject(result);
+    //return result;
   }
   fleet = fleet.body;
 
@@ -404,7 +405,10 @@ async function fleetCheck(currentFleet: any, socket, user, timers) {
   removeTimerOnDisconnect(socket, timers[user].fleetTime);
 
   console.info('getting fleet members');
-  const genChartData = await getFleet(user, currentFleet);
+  const genChartData = await getFleet(user, currentFleet).catch((res) => {
+    clearTimeout(timers[user].fleetTime);
+    return res;
+  });
   socket.emit('fleetUpdate', genChartData);
 }
 
