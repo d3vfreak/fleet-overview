@@ -43,7 +43,7 @@ interface PlayerData {
 interface Players {
   [key: number]: PlayerData;
 }
-function genUI(data: API, fleetTypes): void {
+function genUI(data: Fleet, fleetTypes): void {
   setupChart(
     (fleetDropdown as HTMLOptionElement).value,
     data,
@@ -63,7 +63,7 @@ function delete_cookie(name) {
 }
 
 function showInfo() {
-  vex.defaultOptions.className = 'vex-theme-plain';
+  vex.defaultOptions.className = 'vex-theme-top';
   vex.dialog.buttons.YES.text = 'Continue to login';
   // vex.dialog.buttons.NO.text = 'Not interested.';
   vex.dialog.open({
@@ -71,7 +71,8 @@ function showInfo() {
     input: `<span style="font-weight:bold">Welcome to Fleet Overview</span><br/>
     Fleet Overview is a tool that gives you real time informations of your current fleet composition.<br/><br/>
     You can sort your fleet by predefined filters and if you host this app yourself you can create your own filters.<br/><br/>
-      <span style="font-weight:bold">The app can only work if you are logged in and you have to be the fleet boss of your current fleet.</span>`,
+      This App need two permissions <span class="bold">esi-fleets.read_fleet.v1</span> to read your fleet data and <span class="bold">esi-location.read_location.v1</span> to filter the fleet on your location.<br/>
+      <span class="bold">The app can only work if you are logged in and you have to be the fleet boss of your current fleet.</span>`,
     callback: function (value) {
       console.log(value);
       if (value !== false) {
@@ -84,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
   SETUP: {
     let players: Players = {};
     let systems = {};
-    let fleet: API = {};
+    let fleet: Fleet = { all: {}, fcSystem: {} };
     let filters;
     const user = getCookie('user');
     const hash = getCookie('hash');
@@ -108,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
       delete_cookie('hash');
       location.reload();
     });
-    fleetDropdown.style.display = 'block';
+
     document.getElementById('past-login').style.display = 'flex';
     document.getElementById('pre-login').style.display = 'none';
     fleetDropdown.addEventListener('change', function () {
@@ -169,38 +170,41 @@ interface API {
 
 function setupChart(
   fleetType: string,
-  data: API,
+  data: Fleet,
   fleetTypes: {},
   systemsFilter
 ): void {
-  let ships = Object.keys(data);
-  /* if (systems[systemsFilter] !== undefined) {
-     for (const ship of ships) {
-     for (const pilot of Object.keys(data[ship])) {
-     if (
-     data[ship][parseInt(pilot)].solar_system_id ===
-     parseInt(systemsFilter)
-     ) {
-     delete data[ship][parseInt(pilot)];
-     }
-     }
-     }
-     }
-   */
+  let systemData;
+  console.log(data);
+  if (systemsFilter === 'everySystem') {
+    systemData = data.all;
+  } else {
+    systemData = data.fcSystem;
+  }
+
+  let ships = Object.keys(systemData);
+
+  console.log(systemsFilter);
+
   if (fleetTypes[fleetType] !== undefined) {
     const filter = new Set(fleetTypes[fleetType]);
     ships = ships.filter((x) => filter.has(x));
   }
 
   const shipNumbers = ships.map((type) => {
-    return data[type] !== undefined ? Object.keys(data[type]).length : 0;
+    return systemData[type] !== undefined
+      ? Object.keys(systemData[type]).length
+      : 0;
   });
   myChart.options.tooltips = {
     callbacks: {
       label: function (tooltipItem, chLabels) {
-        const test = Object.keys(data[chLabels.labels[tooltipItem.index]]);
-        let labels = test.map((player) => {
-          return data[chLabels.labels[tooltipItem.index]][player].username;
+        const players = Object.keys(
+          systemData[chLabels.labels[tooltipItem.index]]
+        );
+        let labels = players.map((player) => {
+          return systemData[chLabels.labels[tooltipItem.index]][player]
+            .username;
         });
         return labels;
       },
@@ -240,19 +244,4 @@ function setupChart(
     ],
   };
   myChart.update(0);
-}
-let i = 0;
-async function addSystem(id, systems) {
-  if (systems[id] !== undefined) {
-    return false;
-  }
-  const system = await apiCall(
-    `universe/systems/${id}/?datasource=tranquility`
-  );
-  systems[id] = system;
-  const option = document.createElement('option');
-  option.setAttribute('value', system.system_id);
-  option.innerHTML = system.name;
-  systemDropdown.appendChild(option);
-  i++;
 }

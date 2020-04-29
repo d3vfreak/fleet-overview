@@ -1,3 +1,7 @@
+.bold{
+  font-weight:bold;
+}
+
 #wrapper{
   display:flex;
   /* position: relative;*/
@@ -12,7 +16,7 @@
 .toolbar{
   align-items: center;    
   display:grid;
-  grid-template-columns: 120px 120px;
+  grid-template-columns: 120px 120px 120px;
 }
 .item,#learnMore{
 height: 40px;
@@ -26,7 +30,7 @@ margin-right:5px;
 #past-login{
   margin-top:100px;
 }
-#past-login,#systemFilter{display:none}
+#past-login{display:none}
 #pre-login{
   height:100px;
   display: flex;

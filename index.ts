@@ -45,7 +45,7 @@ async function handleErr(fn, msg: String) {
  * @return {string} Login url that the user will be redirected to.
  */
 function generateURL(): string {
-  return `https://login.eveonline.com/v2/oauth/authorize?response_type=code&redirect_uri=${domain}/callback/&client_id=${id}&scope=esi-fleets.read_fleet.v1&state=fleet-checker`;
+  return `https://login.eveonline.com/v2/oauth/authorize?response_type=code&redirect_uri=${domain}/callback/&client_id=${id}&scope=esi-fleets.read_fleet.v1%20esi-location.read_location.v1&state=fleet-checker`;
 }
 
 /**
@@ -153,6 +153,11 @@ interface Composition {
   [key: string]: Ship;
 }
 
+interface Fleet {
+  all: Composition;
+  fcSystem: any;
+}
+
 interface FleetMemberData {
   character_id: number;
   join_time: string;
@@ -197,7 +202,7 @@ async function connectToEsi(refreshToken: string) {
  * @async
  * @return {Promise<Composition>} Promise with composition.
  */
-async function getFleet(user, currentFleet): Promise<Composition> {
+async function getFleet(user, currentFleet): Promise<Fleet> {
   /* eslint-disable @typescript-eslint/camelcase */
 
   const esi = await connectToEsi(user.refresh_token);
@@ -207,25 +212,36 @@ async function getFleet(user, currentFleet): Promise<Composition> {
     squad: number;
     wing: number;
   }
-  const comp: Composition = {};
+  const result: Fleet = { all: {}, fcSystem: {} };
   if (currentFleet === undefined || currentFleet.fleet_boss_id !== user.id) {
-    console.log('test1000');
-    return comp;
+    return result;
   }
   const currentFleetId: number = currentFleet.fleet_id;
-  let fleet = await handleErr(
-    esi.apis.Fleets.get_fleets_fleet_id_members({
-      fleet_id: currentFleetId,
-    }),
-    'Getting members of current fleet failed.'
-  );
-  fleet = fleet.body;
+  let fleet = (
+    await handleErr(
+      esi.apis.Fleets.get_fleets_fleet_id_members({
+        fleet_id: currentFleetId,
+      }),
+      'Getting members of current fleet failed.'
+    )
+  ).body;
+
+  const location = (
+    await handleErr(
+      esi.apis.Location.get_characters_character_id_location({
+        character_id: user.id,
+      }),
+      'Failed to get location of fc.'
+    )
+  ).body.solar_system_id;
 
   const eve = JSON.parse(
     await fs.promises.readFile('./data/eve.json', {
       encoding: 'utf-8',
     })
   );
+  const fcSystem = {};
+  const comp = {};
   for (const member in fleet) {
     if (eve['universe']['ships'][fleet[member].ship_type_id] === undefined) {
       eve['universe']['ships'][fleet[member].ship_type_id] = (
@@ -250,12 +266,21 @@ async function getFleet(user, currentFleet): Promise<Composition> {
     fleet[member].username = username;
 
     const obj = { [fleet[member].character_id]: fleet[member] };
+    if (location === fleet[member].solar_system_id) {
+      fcSystem[shipName] =
+        fcSystem[shipName] === undefined
+          ? obj
+          : Object.assign(fcSystem[shipName], obj);
+    }
+
     comp[shipName] =
       comp[shipName] === undefined ? obj : Object.assign(comp[shipName], obj);
   }
+  result.all = comp;
+  result.fcSystem = fcSystem;
   await fs.promises.writeFile('./data/eve.json', JSON.stringify(eve));
   /* eslint-enable @typescript-eslint/camelcase */
-  return comp;
+  return result;
 }
 
 /**
@@ -404,14 +429,15 @@ async function checkIfPlayerIsInFleet(socket, timers, user) {
     ).body;
 
     fleetCheck(currentFleet, socket, user, timers);
-    if (timers[user].fleetTime === undefined) {
+    if (timers[user] === undefined) {
+      //&& timers[user].fleetTime === undefined) {
       const timer = setInterval(() => {
         fleetCheck(currentFleet, socket, user, timers);
-      }, 5000);
+      }, 3000);
       timers[user].fleetTime = timer;
     }
   } catch (e) {
-    if (timers[user].fleetTime !== undefined) {
+    if (timers[user] !== undefined && timers[user].fleetTime !== undefined) {
       clearTimeout(timers[db[user]].fleetTime);
     }
   }

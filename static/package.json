@@ -18,11 +18,10 @@
       "socketio": "https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.slim.js",
       "vex": "https://raw.githubusercontent.com/HubSpot/vex/master/dist/js/vex.combined.min.js",
       "vesCss": "https://raw.githubusercontent.com/HubSpot/vex/master/dist/css/vex.css",
-      "vexThemePlain": "https://raw.githubusercontent.com/HubSpot/vex/master/dist/css/vex-theme-plain.css"
+      "vexThemePlain": "https://raw.githubusercontent.com/HubSpot/vex/master/dist/css/vex-theme-top.css"
     }
   },
   "devDependencies": {
     "volo": "^0.3.8"
   }
 }
-
