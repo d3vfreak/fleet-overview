@@ -217,14 +217,16 @@ async function getFleet(user, currentFleet): Promise<Fleet> {
     return result;
   }
   const currentFleetId: number = currentFleet.fleet_id;
-  let fleet = (
-    await handleErr(
-      esi.apis.Fleets.get_fleets_fleet_id_members({
-        fleet_id: currentFleetId,
-      }),
-      'Getting members of current fleet failed.'
-    )
-  ).body;
+  let fleet = await handleErr(
+    esi.apis.Fleets.get_fleets_fleet_id_members({
+      fleet_id: currentFleetId,
+    }),
+    'Getting members of current fleet failed.'
+  );
+  if (fleet.body === undefined) {
+    return result;
+  }
+  fleet = fleet.body;
 
   const location = (
     await handleErr(
@@ -401,7 +403,7 @@ function removeTimerOnDisconnect(socket, timer) {
 async function fleetCheck(currentFleet: any, socket, user, timers) {
   removeTimerOnDisconnect(socket, timers[user].fleetTime);
 
-  console.log('getting fleet members');
+  console.info('getting fleet members');
   const genChartData = await getFleet(user, currentFleet);
   socket.emit('fleetUpdate', genChartData);
 }
@@ -417,28 +419,35 @@ async function fleetCheck(currentFleet: any, socket, user, timers) {
  */
 async function checkIfPlayerIsInFleet(socket, timers, user) {
   removeTimerOnDisconnect(socket, timers[user].inFleet);
-  console.log('checking if player is in a fleet.');
+  console.info('checking if player is in a fleet.');
 
-  let currentFleet = undefined;
+  const esi = await connectToEsi(user.refresh_token);
   try {
-    const esi = await connectToEsi(user.refresh_token);
-    currentFleet = (
-      await esi.apis.Fleets.get_characters_character_id_fleet({
-        character_id: user.id,
-      })
-    ).body;
+    let currentFleet = await esi.apis.Fleets.get_characters_character_id_fleet({
+      character_id: user.id,
+    }).catch(() => {
+      if (timers[user].hasOwnProperty('fleetTime') === true) {
+        clearTimeout(timers[user].fleetTime);
+      }
+    });
 
-    fleetCheck(currentFleet, socket, user, timers);
-    if (timers[user] === undefined) {
+    if (
+      timers[user].hasOwnProperty('fleetTime') === false &&
+      currentFleet !== undefined
+    ) {
+      currentFleet = currentFleet.body;
+
       //&& timers[user].fleetTime === undefined) {
       const timer = setInterval(() => {
         fleetCheck(currentFleet, socket, user, timers);
-      }, 3000);
+      }, 6000);
       timers[user].fleetTime = timer;
+      fleetCheck(currentFleet, socket, user, timers);
     }
   } catch (e) {
-    if (timers[user] !== undefined && timers[user].fleetTime !== undefined) {
-      clearTimeout(timers[db[user]].fleetTime);
+    if (timers[user].hasOwnProperty('fleetTime') === true) {
+      clearTimeout(timers[user].fleetTime);
+      delete timers[user].fleetTime;
     }
   }
 }
@@ -480,8 +489,8 @@ async function run() {
 
       const timer = setInterval(() => {
         checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
-      }, 60000);
-      timers[db[auth.user]] = { inFleet: timer, fleetTime: undefined };
+      }, 30000);
+      timers[db[auth.user]] = { inFleet: timer };
       checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
     });
   });

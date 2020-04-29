@@ -74,7 +74,6 @@ function showInfo() {
       This App need two permissions <span class="bold">esi-fleets.read_fleet.v1</span> to read your fleet data and <span class="bold">esi-location.read_location.v1</span> to filter the fleet on your location.<br/>
       <span class="bold">The app can only work if you are logged in and you have to be the fleet boss of your current fleet.</span>`,
     callback: function (value) {
-      console.log(value);
       if (value !== false) {
         socket.emit('link', {});
       }
@@ -144,21 +143,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 });
-async function apiCall(route: string) {
-  const resp = await fetch(`https://esi.evetech.net/latest/${route}`);
-  return await resp.json();
-}
-
-const addChar = async function (
-  id: string,
-  collection: Players
-): Promise<void> {
-  if (collection[id] !== undefined) {
-    return;
-  }
-  const player = await apiCall(`characters/${id}/?datasource=tranquility`);
-  collection[id] = player;
-};
 
 interface FleetMember {
   [key: number]: FleetMemberData;
@@ -175,7 +159,6 @@ function setupChart(
   systemsFilter
 ): void {
   let systemData;
-  console.log(data);
   if (systemsFilter === 'everySystem') {
     systemData = data.all;
   } else {
