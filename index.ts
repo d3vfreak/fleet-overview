@@ -407,6 +407,7 @@ async function fleetCheck(currentFleet: any, socket, user, timers) {
   console.info('getting fleet members');
   const genChartData = await getFleet(user, currentFleet).catch((res) => {
     clearTimeout(timers[user].fleetTime);
+    delete timers[user].fleetTime;
     return res;
   });
   socket.emit('fleetUpdate', genChartData);

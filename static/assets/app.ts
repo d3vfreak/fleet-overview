@@ -80,6 +80,19 @@ function showInfo() {
     },
   });
 }
+
+function showHelp() {
+  vex.defaultOptions.className = 'vex-theme-top';
+  // vex.dialog.buttons.NO.text = 'Not interested.';
+  vex.dialog.alert({
+    //message: 'Welcome to Fleet Overview',
+    unsafeMessage: `
+    <span style="font-weight:bold">Help</span><br/>
+    If you see none of your fleet members showing up make sure that you are in a fleet and that you are the fleet boss of that fleet.<br/><br/>
+    This application checks every 30 seconds if you are in a fleet so you maybe need wait a bit more for it to see that you are in fleet.<br/><br/>CCP is updating the fleet data every 5 seconnds and this application get the data every 6 seconds.<br/><br/> The function that aggregates the data can take some additional seconds so it can take up to 14 seconds to update the results.`,
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   SETUP: {
     let players: Players = {};
@@ -115,6 +128,9 @@ document.addEventListener('DOMContentLoaded', function () {
       genUI(fleet, filters);
     });
 
+    document.getElementById('help').addEventListener('click', function () {
+      showHelp();
+    });
     document.getElementById('logout').addEventListener('click', function () {
       delete_cookie('user');
       delete_cookie('hash');
