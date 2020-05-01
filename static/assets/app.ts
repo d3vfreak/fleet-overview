@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
       break SETUP;
     }
 
-    socket.emit('login', { user: user, hash: hash });
+    socket.emit('login', { user: decodeURI(user), hash: hash });
     //socket.emit('filters');
     socket.on('clearCookies', () => {
       delete_cookie('user');
