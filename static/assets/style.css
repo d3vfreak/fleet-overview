@@ -30,6 +30,15 @@
   }
 
 }
+#donations{
+  width:80%;
+  margin:auto;
+  color:#3d3d3d;
+}
+#donations .bold{
+
+  color:#fda085;
+}
 
 .item,#learnMore{
   height: 40px;
@@ -69,6 +78,7 @@ select:checked,button:hover {
 }
 
 .box{
+  min-width: 400px;
   width:85vw;
   height:auto;
   border-radius: 1%;
