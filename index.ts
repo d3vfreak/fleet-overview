@@ -62,7 +62,7 @@ async function generateToken(tempToken: string): Promise<any> {
   const token = await handleErr(
     needle(
       'post',
-      `https://login.eveonline.com/v2/oauth/token`,
+      'https://login.eveonline.com/v2/oauth/token',
       { grant_type: 'authorization_code', code: tempToken },
       {
         headers: {
@@ -88,7 +88,7 @@ async function verifyToken(accToken: string): Promise<any> {
   const token = await handleErr(
     needle(
       'get',
-      `https://esi.evetech.net/verify/`,
+      'https://esi.evetech.net/verify/',
       {},
       {
         headers: {
@@ -120,7 +120,7 @@ async function auth(refreshToken: string): Promise<Token> {
   const accToken = await handleErr(
     needle(
       'post',
-      `https://login.eveonline.com/v2/oauth/token`,
+      'https://login.eveonline.com/v2/oauth/token',
       {
         grant_type: 'refresh_token',
         client_id: id,
@@ -206,16 +206,8 @@ async function getFleet(user, currentFleet): Promise<Fleet> {
   /* eslint-disable @typescript-eslint/camelcase */
 
   const esi = await connectToEsi(user.refresh_token);
-  interface ActiveFleet {
-    fleet_id: number;
-    role: string;
-    squad: number;
-    wing: number;
-  }
+
   const result: Fleet = { all: {}, fcSystem: {} };
-  if (currentFleet === undefined || currentFleet.fleet_boss_id !== user.id) {
-    return result;
-  }
   const currentFleetId: number = currentFleet.fleet_id;
   let fleet = await handleErr(
     esi.apis.Fleets.get_fleets_fleet_id_members({
@@ -366,13 +358,11 @@ app.use('/callback/', (req, res) => {
     }
     await fs.promises.writeFile('./data/tokens.json', JSON.stringify(db));
     res.cookie('user', user.CharacterName, {
-      //expires: new Date(new Date().getFullYear() + 900000),
       maxAge: 31536000,
       SameSite: 'strict',
     });
     res.cookie('hash', hash, {
       maxAge: 31536000,
-      //expires: new Date(new Date().getFullYear() + 900000),
       SameSite: 'strict',
     });
     res.redirect(domain);
@@ -386,7 +376,7 @@ app.use('/callback/', (req, res) => {
  * @param {object} timer - setInterval timer
  * @return {void}
  */
-function removeTimerOnDisconnect(socket, timer) {
+function removeTimerOnDisconnect(socket, timer): void {
   if (socket.disconnected === true) {
     clearTimeout(timer);
   }
@@ -401,7 +391,12 @@ function removeTimerOnDisconnect(socket, timer) {
  * @param {[TODO:type]} timers - [TODO:description]
  * @return {[TODO:type]} [TODO:description]
  */
-async function fleetCheck(currentFleet: any, socket, user, timers) {
+async function fleetCheck(
+  currentFleet: any,
+  socket,
+  user,
+  timers
+): Promise<void> {
   removeTimerOnDisconnect(socket, timers[user].fleetTime);
 
   console.info('getting fleet members');
@@ -438,11 +433,11 @@ async function checkIfPlayerIsInFleet(socket, timers, user) {
 
     if (
       timers[user].hasOwnProperty('fleetTime') === false &&
-      currentFleet !== undefined
+      currentFleet !== undefined &&
+      currentFleet.body.fleet_boss_id === user.id
     ) {
       currentFleet = currentFleet.body;
 
-      //&& timers[user].fleetTime === undefined) {
       const timer = setInterval(() => {
         fleetCheck(currentFleet, socket, user, timers);
       }, 6000);
@@ -463,19 +458,15 @@ async function checkIfPlayerIsInFleet(socket, timers, user) {
  * @async
  * @return {[TODO:type]} [TODO:description]
  */
-async function run() {
+async function run(): Promise<void> {
   const filters = await fleetFilters();
-  let timers = {};
-
+  const timers = {};
   db = JSON.parse(
     await fs.promises.readFile('./data/tokens.json', {
       encoding: 'utf-8',
     })
   );
   io.on('connection', (socket) => {
-    /*socket.on('filters', () => {
-      socket.emit('filters', filters);
-    });*/
     socket.on('link', () => {
       socket.emit('loginURL', generateURL());
     });
@@ -494,7 +485,7 @@ async function run() {
 
       const timer = setInterval(() => {
         checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
-      }, 30000);
+      }, 50000);
       timers[db[auth.user]] = { inFleet: timer };
       checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
     });
