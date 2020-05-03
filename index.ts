@@ -485,7 +485,7 @@ async function run(): Promise<void> {
 
       const timer = setInterval(() => {
         checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
-      }, 50000);
+      }, 61000);
       timers[db[auth.user]] = { inFleet: timer };
       checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
     });
