@@ -89,7 +89,7 @@ function showHelp() {
     unsafeMessage: `
     <span style="font-weight:bold">Help</span><br/>
     If you see none of your fleet members showing up make sure that you are in a fleet and that you are the fleet boss of that fleet.<br/><br/>
-    This application checks every 30 seconds if you are in a fleet so you maybe need wait a bit more for it to see that you are in fleet.<br/><br/>
+    This application checks every minute if you are in a fleet so you maybe need wait a bit more for it to see that you are in fleet.<br/><br/>
     If you are wondering why the ship type is not updating it takes CCP up to 40 seconds to update the ship type.`,
   });
 }
