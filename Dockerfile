@@ -13,4 +13,4 @@ COPY --from=build /app/static /app/static
 COPY --from=build /app/package.json /app
 RUN npm install --production
 CMD ["node","index.js"] 
-EXPOSE 80
+EXPOSE 3000

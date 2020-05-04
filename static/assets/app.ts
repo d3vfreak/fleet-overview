@@ -27,22 +27,6 @@ const myChart = new Chart(ctx, {
   },
 });
 
-interface PlayerData {
-  alliance_id: number;
-  ancestry_id: number;
-  birthday: string;
-  bloodline_id: number;
-  corporation_id: number;
-  description: string;
-  gender: string;
-  name: string;
-  race_id: number;
-  security_status: number;
-  wing_id: number;
-}
-interface Players {
-  [key: number]: PlayerData;
-}
 function genUI(data: Fleet, fleetTypes): void {
   setupChart(
     (fleetDropdown as HTMLOptionElement).value,
@@ -96,8 +80,6 @@ function showHelp() {
 
 document.addEventListener('DOMContentLoaded', function () {
   SETUP: {
-    let players: Players = {};
-    let systems = {};
     let fleet: Fleet = { all: {}, fcSystem: {} };
     let filters;
     const user = getCookie('user');
@@ -161,14 +143,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
-interface FleetMember {
-  [key: number]: FleetMemberData;
-}
-
-interface API {
-  [key: string]: FleetMember;
-}
-
 function setupChart(
   fleetType: string,
   data: Fleet,
@@ -202,7 +176,7 @@ function setupChart(
         const players = Object.keys(
           systemData[chLabels.labels[tooltipItem.index]]
         );
-        let labels = players.map((player) => {
+        const labels = players.map((player) => {
           return systemData[chLabels.labels[tooltipItem.index]][player]
             .username;
         });

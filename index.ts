@@ -48,89 +48,99 @@ function generateURL(): string {
   return `https://login.eveonline.com/v2/oauth/authorize?response_type=code&redirect_uri=${domain}/callback/&client_id=${id}&scope=esi-fleets.read_fleet.v1%20esi-location.read_location.v1&state=fleet-checker`;
 }
 
-/**
- * Function that uses the uses the token from the login and gets in return a refresh token.
- *
- * @async
- * @param {string} tempToken - Token from login
- * @return {[TODO:type]}
- */
-async function generateToken(tempToken: string): Promise<any> {
-  const secret: string = config.secret;
-  const base = Buffer.from(id + ':' + secret).toString('base64');
-  // eslint-disable-next-line
-  const token = await handleErr(
-    needle(
-      'post',
-      'https://login.eveonline.com/v2/oauth/token',
-      { grant_type: 'authorization_code', code: tempToken },
-      {
-        headers: {
-          content_type: 'application/x-www-form-urlencoded',
-          Authorization: ' Basic ' + base,
-        },
-      }
-    ),
-    'Auth failed'
-  );
-  return token.body;
-}
-
-/**
- * Returns the sso information including the account name of the owner of the token.
- *
- * @async
- * @param {string} accToken - The access token.
- * @return {Promise<any>} Object with sso information.
- */
-async function verifyToken(accToken: string): Promise<any> {
-  // eslint-disable-next-line
-  const token = await handleErr(
-    needle(
-      'get',
-      'https://esi.evetech.net/verify/',
-      {},
-      {
-        headers: {
-          content_type: 'application/x-www-form-urlencoded',
-          Authorization: 'Bearer ' + accToken,
-        },
-      }
-    ),
-    'Auth failed'
-  );
-  return token.body;
-}
-
 interface Token {
   access_token: string;
   expires_in: number;
   token_type: string;
   refresh_token: string;
 }
+/**
+ * Function that uses the uses the token from the login and gets in return a refresh token.
+ *
+ * @async
+ * @param {string} tempToken - Token from login
+ * @return {Promise<Token>} Returns a token object that has the refresh token in it.
+ */
+async function generateToken(tempToken: string): Promise<Token> {
+  const secret: string = config.secret;
+  const base: string = Buffer.from(id + ':' + secret).toString('base64');
+  return (
+    await handleErr(
+      needle(
+        'post',
+        'https://login.eveonline.com/v2/oauth/token',
+        { grant_type: 'authorization_code', code: tempToken },
+        {
+          headers: {
+            content_type: 'application/x-www-form-urlencoded',
+            Authorization: ' Basic ' + base,
+          },
+        }
+      ),
+      'Auth failed'
+    )
+  ).body;
+}
+
+interface SSOData {
+  CharacterID: number;
+  CharacterName: number;
+  ExpiresOn: string;
+  Scopes: string;
+  TokenType: string;
+  CharacterOwnerHash: string;
+  ClientID: string;
+}
+/**
+ * Returns the sso information including the account name of the owner of the token.
+ *
+ * @async
+ * @param {string} accToken - The access token.
+ * @return {Promise<SSOData>} Object with sso information.
+ */
+async function verifyToken(accToken: string): Promise<SSOData> {
+  // eslint-disable-next-line
+  return (
+    await handleErr(
+      needle(
+        'get',
+        'https://esi.evetech.net/verify/',
+        {},
+        {
+          headers: {
+            content_type: 'application/x-www-form-urlencoded',
+            Authorization: 'Bearer ' + accToken,
+          },
+        }
+      ),
+      'Auth failed'
+    )
+  ).body;
+}
 
 /**
  * Get an acess token from ccp with a given refresh token.
  *
  * @async
- * @return {Promise<Token>} Returns a token object as a promise
+ * @return {Promise<Token>} Returns a token object as a promise with the access_token in it.
  */
 async function auth(refreshToken: string): Promise<Token> {
   // eslint-disable-next-line
-  const accToken = await handleErr(
-    needle(
-      'post',
-      'https://login.eveonline.com/v2/oauth/token',
-      {
-        grant_type: 'refresh_token',
-        client_id: id,
-        refresh_token: refreshToken,
-      },
-      { headers: { content_type: 'application/x-www-form-urlencoded' } }
-    ),
-    'Auth failed'
-  );
-  return accToken.body;
+  return (
+    await handleErr(
+      needle(
+        'post',
+        'https://login.eveonline.com/v2/oauth/token',
+        {
+          grant_type: 'refresh_token',
+          client_id: id,
+          refresh_token: refreshToken,
+        },
+        { headers: { content_type: 'application/x-www-form-urlencoded' } }
+      ),
+      'Auth failed'
+    )
+  ).body;
 }
 
 interface Pilot {
@@ -196,13 +206,23 @@ async function connectToEsi(refreshToken: string) {
   return esi;
 }
 
+interface User {
+  refresh_token: string;
+  hash: string;
+  alliance: number;
+  corp: number;
+  id: number;
+}
 /**
  * Return the current fleet composition of the logged in character.
  *
  * @async
  * @return {Promise<Composition>} Promise with composition.
  */
-async function getFleet(user, currentFleet): Promise<Fleet> {
+async function getFleet(
+  user: User,
+  currentFleet: CurrentFleet
+): Promise<Fleet> {
   /* eslint-disable @typescript-eslint/camelcase */
 
   const esi = await connectToEsi(user.refresh_token);
@@ -291,24 +311,37 @@ async function fleetFilters() {
   return filters;
 }
 
+interface PublicInfo {
+  alliance_id: number;
+  ancestry_id: number;
+  birthday: string;
+  bloodline_id: number;
+  corporation_id: number;
+  description: string;
+  gender: string;
+  name: string;
+  race_id: number;
+  security_status: number;
+}
 /**
  * Gets the public info of an eve player
  *
  * @async
  * @param {number} playerID - eve player id
- * @return {object} object with the player data
+ * @return {Promise<PublicInfo>} object with the player data
  */
-async function getPublicInfo(playerID: number) {
-  const info = await handleErr(
-    needle(
-      'get',
-      `https://esi.evetech.net/latest/characters/${playerID}/?datasource=tranquility`,
-      {},
-      { headers: { content_type: 'application/x-www-form-urlencoded' } }
-    ),
-    'Could not get char_info'
-  );
-  return info.body;
+async function getPublicInfo(playerID: number): Promise<PublicInfo> {
+  return (
+    await handleErr(
+      needle(
+        'get',
+        `https://esi.evetech.net/latest/characters/${playerID}/?datasource=tranquility`,
+        {},
+        { headers: { content_type: 'application/x-www-form-urlencoded' } }
+      ),
+      'Could not get char_info'
+    )
+  ).body;
 }
 server.listen(3000);
 app.use('/', express.static(path.join(__dirname, 'static')));
@@ -323,8 +356,6 @@ app.use('/callback/', (req, res) => {
   }
   const crypto = require('crypto');
   const hash = crypto.randomBytes(20).toString('hex');
-  let rfToken;
-  let cID;
   (async function () {
     const token = await generateToken(code);
     if (token.refresh_token === undefined) {
@@ -372,7 +403,7 @@ app.use('/callback/', (req, res) => {
 /**
  * Function that removes setInterval timer on socket disconnect
  *
- * @param {[TODO:type]} socket - [TODO:description]
+ * @param {object} socket - [TODO:description]
  * @param {object} timer - setInterval timer
  * @return {void}
  */
@@ -382,27 +413,35 @@ function removeTimerOnDisconnect(socket, timer): void {
   }
 }
 
+interface CurrentFleet {
+  fleet_boss_id: number;
+  fleet_id: number;
+  role: string;
+  squad_id: number;
+  wing_id: number;
+}
+
 /**
- * Function that is getting called when the player is in a fleet.
+ * Function that checks the fleet data when the player is in a fleet and fleet boss.
+ *
  * @async
- * @param {any} currentFleet - [TODO:description]
+ * @param {CurrentFleet} currentFleet - Fleet that needs to be checked out.
  * @param {[TODO:type]} socket - [TODO:description]
- * @param {[TODO:type]} user - [TODO:description]
+ * @param {User} user - Current logged in user
  * @param {[TODO:type]} timers - [TODO:description]
- * @return {[TODO:type]} [TODO:description]
+ * @return {Promise<void>} [TODO:description]
  */
 async function fleetCheck(
-  currentFleet: any,
+  currentFleet: CurrentFleet,
   socket,
-  user,
+  user: User,
   timers
 ): Promise<void> {
-  removeTimerOnDisconnect(socket, timers[user].fleetTime);
-
+  removeTimerOnDisconnect(socket, timers[user.id].fleetTime);
   console.info('getting fleet members');
   const genChartData = await getFleet(user, currentFleet).catch((res) => {
-    clearTimeout(timers[user].fleetTime);
-    delete timers[user].fleetTime;
+    clearTimeout(timers[user.id].fleetTime);
+    delete timers[user.id].fleetTime;
     return res;
   });
   socket.emit('fleetUpdate', genChartData);
@@ -417,8 +456,8 @@ async function fleetCheck(
  * @param {[TODO:type]} user - [TODO:description]
  * @return {[TODO:type]} [TODO:description]
  */
-async function checkIfPlayerIsInFleet(socket, timers, user) {
-  removeTimerOnDisconnect(socket, timers[user].inFleet);
+async function checkIfPlayerIsInFleet(socket, timers, user: User) {
+  removeTimerOnDisconnect(socket, timers[user.id].inFleet);
   console.info('checking if player is in a fleet.');
 
   const esi = await connectToEsi(user.refresh_token);
@@ -426,37 +465,36 @@ async function checkIfPlayerIsInFleet(socket, timers, user) {
     let currentFleet = await esi.apis.Fleets.get_characters_character_id_fleet({
       character_id: user.id,
     }).catch(() => {
-      if (timers[user].hasOwnProperty('fleetTime') === true) {
-        clearTimeout(timers[user].fleetTime);
+      if (timers[user.id].hasOwnProperty('fleetTime') === true) {
+        clearTimeout(timers[user.id].fleetTime);
       }
     });
 
     if (
-      timers[user].hasOwnProperty('fleetTime') === false &&
+      timers[user.id].hasOwnProperty('fleetTime') === false &&
       currentFleet !== undefined &&
       currentFleet.body.fleet_boss_id === user.id
     ) {
       currentFleet = currentFleet.body;
-
       const timer = setInterval(() => {
         fleetCheck(currentFleet, socket, user, timers);
       }, 6000);
-      timers[user].fleetTime = timer;
+      timers[user.id].fleetTime = timer;
       fleetCheck(currentFleet, socket, user, timers);
     }
   } catch (e) {
-    if (timers[user].hasOwnProperty('fleetTime') === true) {
-      clearTimeout(timers[user].fleetTime);
-      delete timers[user].fleetTime;
+    if (timers[user.id].hasOwnProperty('fleetTime') === true) {
+      clearTimeout(timers[user.id].fleetTime);
+      delete timers[user.id].fleetTime;
     }
   }
 }
 
 /**
- * Function that sets up the callbacks.
+ * Function that setups the application.
  *
  * @async
- * @return {[TODO:type]} [TODO:description]
+ * @return {void}
  */
 async function run(): Promise<void> {
   const filters = await fleetFilters();
@@ -486,7 +524,7 @@ async function run(): Promise<void> {
       const timer = setInterval(() => {
         checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
       }, 61000);
-      timers[db[auth.user]] = { inFleet: timer };
+      timers[db[auth.user].id] = { inFleet: timer };
       checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
     });
   });
