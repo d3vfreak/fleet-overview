@@ -1,7 +1,15 @@
 .bold{
   font-weight:bold;
 }
-
+.thumbnail{
+  width: 100%;
+  height: 200px;
+  background-size: contain;
+  overflow: hidden
+}
+.thumbnail:hover{
+  transform: scale(1.5);
+}
 #wrapper{
   display:flex;
   /* position: relative;*/

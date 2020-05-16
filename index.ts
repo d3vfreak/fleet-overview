@@ -4,7 +4,7 @@ const needle = require('needle');
 const Swagger = require('swagger-client');
 const express = require('express');
 const app = express();
-const server = require('http').Server(app);
+const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const config = require('./data/config');
 const path = require('path');
@@ -12,7 +12,6 @@ const fs = require('fs');
 /* eslint-disable @typescript-eslint/no-var-requires */
 const id: string = config.id;
 const domain: string = config.domain;
-let db;
 process.on('unhandledRejection', function (err, promise) {
   console.error(
     'Unhandled rejection (promise: ',
@@ -201,7 +200,7 @@ async function connectToEsi(refreshToken: string) {
         return req;
       },
     }),
-    'Swagger error'
+    'Could not connect to esi'
   );
   return esi;
 }
@@ -233,7 +232,7 @@ async function getFleet(
     esi.apis.Fleets.get_fleets_fleet_id_members({
       fleet_id: currentFleetId,
     }),
-    'Getting members of current fleet failed.'
+    '[' + user.id + '] User is not fleet boss'
   );
   if (fleet.body === undefined) {
     return Promise.reject(result);
@@ -275,7 +274,7 @@ async function getFleet(
         esi.apis.Character.get_characters_character_id({
           character_id: fleet[member].character_id,
         }),
-        'failed getting user'
+        '[' + user.id + '] failed getting user'
       )
     ).body.name;
     fleet[member].username = username;
@@ -339,66 +338,10 @@ async function getPublicInfo(playerID: number): Promise<PublicInfo> {
         {},
         { headers: { content_type: 'application/x-www-form-urlencoded' } }
       ),
-      'Could not get char_info'
+      'Could not get player data'
     )
   ).body;
 }
-server.listen(3000);
-app.use('/', express.static(path.join(__dirname, 'static')));
-/*
-   Register account callback that generates a login token and cookie and saves it in the data/tokens.json.
-*/
-app.use('/callback/', (req, res) => {
-  const code = req.query.code;
-  if (code === undefined || code === '') {
-    res.send('login failed');
-    return false;
-  }
-  const crypto = require('crypto');
-  const hash = crypto.randomBytes(20).toString('hex');
-  (async function () {
-    const token = await generateToken(code);
-    if (token.refresh_token === undefined) {
-      return false;
-    }
-    const rfToken = token.refresh_token;
-    const user = await verifyToken(token.access_token);
-    db = JSON.parse(
-      await fs.promises.readFile('./data/tokens.json', {
-        encoding: 'utf-8',
-      })
-    );
-    if (db[user.CharacterName] === undefined) {
-      const info = await getPublicInfo(user.CharacterID);
-
-      const sso = await handleErr(
-        verifyToken(token.access_token),
-        'Getting CharacterID failed'
-      );
-
-      db[user.CharacterName] = {
-        refresh_token: rfToken,
-        hash: hash,
-        alliance: info.alliance_id,
-        corp: info.corporation_id,
-        id: sso.CharacterID,
-      };
-    } else {
-      db[user.CharacterName].refresh_token = rfToken;
-      db[user.CharacterName].hash = hash;
-    }
-    await fs.promises.writeFile('./data/tokens.json', JSON.stringify(db));
-    res.cookie('user', user.CharacterName, {
-      maxAge: 31536000,
-      SameSite: 'strict',
-    });
-    res.cookie('hash', hash, {
-      maxAge: 31536000,
-      SameSite: 'strict',
-    });
-    res.redirect(domain);
-  })();
-});
 
 /**
  * Function that removes setInterval timer on socket disconnect
@@ -438,7 +381,7 @@ async function fleetCheck(
   timers
 ): Promise<void> {
   removeTimerOnDisconnect(socket, timers[user.id].fleetTime);
-  console.info('getting fleet members');
+  console.info('[' + user.id + ']', 'getting fleet members');
   const genChartData = await getFleet(user, currentFleet).catch((res) => {
     clearTimeout(timers[user.id].fleetTime);
     delete timers[user.id].fleetTime;
@@ -458,7 +401,7 @@ async function fleetCheck(
  */
 async function checkIfPlayerIsInFleet(socket, timers, user: User) {
   removeTimerOnDisconnect(socket, timers[user.id].inFleet);
-  console.info('checking if player is in a fleet.');
+  console.info('[' + user.id + ']', 'checking if player is in a fleet.');
 
   const esi = await connectToEsi(user.refresh_token);
   try {
@@ -490,44 +433,104 @@ async function checkIfPlayerIsInFleet(socket, timers, user: User) {
   }
 }
 
-/**
- * Function that setups the application.
- *
- * @async
- * @return {void}
- */
-async function run(): Promise<void> {
-  const filters = await fleetFilters();
-  const timers = {};
-  db = JSON.parse(
-    await fs.promises.readFile('./data/tokens.json', {
-      encoding: 'utf-8',
-    })
-  );
-  io.on('connection', (socket) => {
-    socket.on('link', () => {
-      socket.emit('loginURL', generateURL());
-    });
+server.listen(3000);
+app.use('/', express.static(path.join(__dirname, 'static')));
 
-    socket.on('login', (auth) => {
-      if (db[auth.user] === undefined || db[auth.user].hash !== auth.hash) {
-        socket.emit('clearCookies', {});
+{
+  let db = undefined;
+  /*
+   Register account callback that generates a login token and cookie and saves it in the data/tokens.json.
+*/
+  app.use('/callback/', (req, res) => {
+    const code = req.query.code;
+    if (code === undefined || code === '') {
+      res.send('login failed');
+      return false;
+    }
+    const crypto = require('crypto');
+    const hash = crypto.randomBytes(20).toString('hex');
+    (async function () {
+      const token = await generateToken(code);
+      if (token.refresh_token === undefined) {
         return false;
       }
+      const rfToken = token.refresh_token;
+      const user = await verifyToken(token.access_token);
+      db = JSON.parse(
+        await fs.promises.readFile('./data/tokens.json', {
+          encoding: 'utf-8',
+        })
+      );
+      if (db[user.CharacterName] === undefined) {
+        const info = await getPublicInfo(user.CharacterID);
 
-      const sendFilters =
-        filters[db[auth.user].corp] === undefined
-          ? filters['all']
-          : filters[db[auth.user].corp];
-      socket.emit('filters', sendFilters);
+        const sso = await handleErr(
+          verifyToken(token.access_token),
+          'Getting CharacterID failed'
+        );
 
-      const timer = setInterval(() => {
-        checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
-      }, 61000);
-      timers[db[auth.user].id] = { inFleet: timer };
-      checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
-    });
+        db[user.CharacterName] = {
+          refresh_token: rfToken,
+          hash: hash,
+          alliance: info.alliance_id,
+          corp: info.corporation_id,
+          id: sso.CharacterID,
+        };
+      } else {
+        db[user.CharacterName].refresh_token = rfToken;
+        db[user.CharacterName].hash = hash;
+      }
+      await fs.promises.writeFile('./data/tokens.json', JSON.stringify(db));
+      res.cookie('user', user.CharacterName, {
+        maxAge: 31536000,
+        SameSite: 'strict',
+      });
+      res.cookie('hash', hash, {
+        maxAge: 31536000,
+        SameSite: 'strict',
+      });
+      res.redirect(domain);
+    })();
   });
-}
 
-run();
+  /**
+   * Function that setups the application.
+   *
+   * @async
+   * @return {void}
+   */
+  async function run(): Promise<void> {
+    const filters = await fleetFilters();
+    const timers = {};
+    db = JSON.parse(
+      await fs.promises.readFile('./data/tokens.json', {
+        encoding: 'utf-8',
+      })
+    );
+    io.on('connection', (socket) => {
+      socket.on('link', () => {
+        socket.emit('loginURL', generateURL());
+      });
+
+      socket.on('login', (auth) => {
+        if (db[auth.user] === undefined || db[auth.user].hash !== auth.hash) {
+          socket.emit('clearCookies', {});
+          return false;
+        }
+        const sendFilters =
+          filters[db[auth.user].corp] === undefined
+            ? filters['all']
+            : filters[db[auth.user].corp];
+        socket.emit('filters', sendFilters);
+
+        const timer = setInterval(() => {
+          checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
+        }, 61000);
+        timers[db[auth.user].id] = { inFleet: timer };
+        checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
+      });
+    });
+  }
+
+  run();
+}

@@ -14,7 +14,9 @@
     "swagger-client": "^3.10.0"
   },
   "scripts": {
-    "build": "./node_modules/typescript/bin/tsc"
+    "build": "./node_modules/typescript/bin/tsc",
+    "run": "npm run build &&  node index.js",
+    "debug": "printf \"\\033c\" && npm run build && node --inspect --prof index.js"
   },
   "devDependencies": {
     "@types/node": "^13.13.2",

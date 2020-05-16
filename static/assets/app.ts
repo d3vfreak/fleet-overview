@@ -53,6 +53,7 @@ function showInfo() {
   vex.dialog.open({
     //message: 'Welcome to Fleet Overview',
     input: `<span style="font-weight:bold">Welcome to Fleet Overview</span><br/>
+    <img class="thumbnail" src="https://gitlab.com/techfreak/fleet-overview/-/raw/master/SCREENSHOT.png" alt="Screenshot of fleet overview" />
     Fleet Overview is a tool that gives you real time informations of your current fleet composition.<br/><br/>
     You can sort your fleet by predefined filters and if you host this app yourself you can create your own filters.<br/><br/>
       This App need two permissions <span class="bold">esi-fleets.read_fleet.v1</span> to read your fleet data and <span class="bold">esi-location.read_location.v1</span> to filter the fleet on your location.<br/>
