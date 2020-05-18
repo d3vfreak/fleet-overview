@@ -1,8 +1,27 @@
 {
   "all": {
-    "Carriers": ["Archon", "Chimera", "Thanatos", "Nidhoggur"],
-    "Dreads": ["Revelation", "Phoenix", "Moros", "Naglfar"],
-    "Machariels": ["Machariel"]
+    "Capitals": [
+      "Archon",
+      "Chimera",
+      "Thanatos",
+      "Nidhoggur",
+      "Revelation",
+      "Phoenix",
+      "Moros",
+      "Naglfar",
+      "Ninazu",
+      "Apostle"
+    ],
+    "Muninns": ["Muninns", "Scimitar", "Huginn", "Loki", "Sabre", "Lachesis"],
+    "Eagles": ["Eagle", "Basilisk", "Scimitar", "Huginn", "Sabre", "Lachesis"],
+    "Feroxes": [
+      "Feroxes",
+      "Basilisk",
+      "Scimitar",
+      "Huginn",
+      "Sabre",
+      "Lachesis"
+    ]
   },
   "98422578": {
     "Ventures": ["Venture"]
