@@ -1,42 +1,52 @@
 <!DOCTYPE html>
+
 <head>
   <title>Fleet Overview</title>
-  <link rel="stylesheet" type="text/css" href="assets/style.css"/>
-  <link rel="stylesheet" type="text/css" href="assets/github-fork-ribbon-css.css"/>
-  <link rel="stylesheet" type="text/css" href="assets/vesCss.css"/> 
-  <link rel="stylesheet" type="text/css" href="assets/vexThemePlain.css"/> 
-  <script charset="utf-8" src="assets/vex.js"></script>
+  <link rel="stylesheet" type="text/css" href="assets/style.css" />
+  <link rel="stylesheet" type="text/css" href="assets/github-fork-ribbon-css.css" />
+  <link rel="stylesheet" type="text/css" href="assets/vesCss.css" />
+  <link rel="stylesheet" type="text/css" href="assets/vexThemePlain.css" />
 </head>
+
 <body>
-  <a class="github-fork-ribbon" href="https://gitlab.com/techfreak/fleet-overview" data-ribbon="Fork me on Gitlab" title="Fork me on Gitlab">Fork me on Gitlab</a>
+  <a class="github-fork-ribbon" href="https://gitlab.com/techfreak/fleet-overview" data-ribbon="Fork me on Gitlab"
+    title="Fork me on Gitlab">Fork me on Gitlab</a>
   <div id="wrapper">
     <div id="pre-login" class="box">
       <button id="learnMore">Learn more</button>
     </div>
     <div id="past-login" class="box">
-  <div id="donations">
-    <span class="bold">[Donations]</span>
-    You can donate ISK to the character <span class="bold">t3chfreak</span> ingame!
-  </div>
-      <div class="toolbar">
-	<button class="item" id="logout">Sign out</button>
-	<select id="filter" class="item">
-	  <option value="all" selected="all">All Ships</option>
-	</select>
-	<select id="systemFilter" class="item">
-	  <option value="everySystem" selected="everySystem" >All Systems</option>
-	  <option value="fcSystem">FC System / Your System</option>
-	</select>
-	<button class="item" id="help">Need help ?</button>
+      <div id="donations">
+        <span class="bold">[Donations]</span>
+        You can donate ISK to the character <span class="bold">t3chfreak</span> ingame!
       </div>
-      <canvas id="myChart" width="400" height="200"   ></canvas>
+      <div class="toolbar">
+        <button class="item" id="logout">Sign out</button>
+        <select id="filter" class="item">
+          <option value="all" selected="all">All Ships</option>
+        </select>
+        <select id="systemFilter" class="item">
+          <option value="everySystem" selected="everySystem">All Systems</option>
+          <option value="fcSystem">FC System / Your System</option>
+        </select>
+        <button class="item" id="help">Need help ?</button>
+        <div class="item toggle toggle--switch">
+          <input type="checkbox" id="toggle--switch" class="toggle--checkbox" name="monitor">
+          <label class="toggle--btn" for="toggle--switch"><span class="toggle--feature" data-label-on="on"  data-label-off="off"></span></label>
+        </div>
+
+      </div>
+      <canvas id="myChart" width="400" height="200"></canvas>
     </div>
   </div>
+
   <footer>
-    <script type="text/javascript" charset="utf-8" src="assets/Chart.js"></script>
-    <script type="text/javascript" charset="utf-8" src="assets/chartjs-plugin-piechart.js"></script>
-    <script type="text/javascript" charset="utf-8" src="assets/socketio.js"></script>
-    <script type="text/javascript" charset="utf-8" src="assets/app.js"></script>
+    <script type="application/javascript" charset="utf-8" src="assets/vex.js"></script>
+    <script type="application/javascript" charset="utf-8" src="assets/Chart.js"></script>
+    <script type="application/javascript" charset="utf-8" src="assets/chartjs-plugin-piechart.js"></script>
+    <script type="application/javascript" charset="utf-8" src="assets/socketio.js"></script>
+    <script type="application/javascript" charset="utf-8" src="assets/app.js"></script>
   </footer>
 </body>
+
 </html>
