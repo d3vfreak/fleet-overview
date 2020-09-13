@@ -26,7 +26,7 @@
 .toolbar{
   align-items: center;    
   display:grid;
-  grid-template-columns: 120px 120px 120px 120px;
+  grid-template-columns: 120px 120px 120px 120px 120px 120px;
 }
 
 
@@ -67,7 +67,7 @@
   justify-content: center; /* center items vertically, in this case */
   align-items: center;    
 }
-button,select{
+button,select,#monitor{
   background-image: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
   border: none;
   color: white;
@@ -107,4 +107,132 @@ html{
   background: #485563; /* fallback for old browsers */
   background: -webkit-linear-gradient(to right, #485563, #29323c); /* Chrome 10-25, Safari 5.1-6 */
   background: linear-gradient(to right, #485563, #29323c); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+ */
+}
+
+#monitor{display: flex;align-items: flex-start;}
+#monitor span {
+  padding-left: 5px;
+}
+
+#monitor div {
+  overflow: hidden;
+  transform: skew(-10deg);
+  backface-visibility: hidden;
+  transition: all 0.2s ease;
+  font-family: sans-serif;
+  /*background: #485563;*/
+  height: 30px;
+  width: 72px;
+  margin-left: 10px;
+  padding-left: 10px;
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color:#fff;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.11), 
+  0 2px 2px rgba(0,0,0,0.11), 
+  0 2px 2px rgba(0,0,0,0.11), 
+  0 2px 2px rgba(0,0,0,0.11),
+  0 2px 2px rgba(0,0,0,0.11);
+}
+
+
+#monitor span, #monitor div{
+  align-self: center;
+}
+
+
+
+/* =====================================================
+ Some defaults across all toggle demos https://codepen.io/ashleynolan/pen/wBppKz
+ ===================================================== */
+.toggle {
+  display: block;
+  text-align: center;
+  user-select: none;
+}
+.toggle--checkbox {
+  display: none;
+}
+.toggle--btn {
+  display: block;
+  margin: 0 auto;
+  font-size: 1.4em;
+  transition: all 350ms ease-in;
+}
+.toggle--btn:hover {
+  cursor: pointer;
+}
+.toggle--btn, .toggle--checkbox, .toggle--feature, .toggle--btn:before, .toggle--checkbox:before, .toggle--feature:before, .toggle--btn:after, .toggle--checkbox:after, .toggle--feature:after {
+  transition: all 250ms ease-in;
+}
+.toggle--btn:before, .toggle--checkbox:before, .toggle--feature:before, .toggle--btn:after, .toggle--checkbox:after, .toggle--feature:after {
+  content: '';
+  display: block;
+}
+
+
+/* =====================================================
+ Toggle - switch stylee
+ ===================================================== */
+.toggle--switch .toggle--btn {
+  position: relative;
+  width: 120px;
+  height: 44px;
+  font-family: 'PT Sans', Sans Serif;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(90deg, #a4bf4d 0%, #a4bf4d 50%, #ca5046 50%, #ca5046 200%);
+  background-position: -80px 0;
+  background-size: 200% 100%;
+  box-shadow: inset 0 0px 22px -8px #111;
+}
+.toggle--switch .toggle--btn, .toggle--switch .toggle--btn:before {
+  border-radius: 4px;
+}
+.toggle--switch .toggle--btn:before {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 44px;
+  border: 2px solid #202027;
+  background-image: linear-gradient(90deg, transparent 50%, rgba(255, 255, 255, 0.15) 100%);
+  background-color: #2b2e3a;
+  background-size: 5px 5px;
+  text-indent: -100%;
+}
+.toggle--switch .toggle--feature {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  height: 44px;
+  text-shadow: 0 1px 2px #666;
+}
+.toggle--switch .toggle--feature:before, .toggle--switch .toggle--feature:after {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.toggle--switch .toggle--feature:before {
+  content: attr(data-label-on);
+  left: -60%;
+}
+.toggle--switch .toggle--feature:after {
+  content: attr(data-label-off);
+  right: 16%;
+}
+.toggle--switch .toggle--checkbox:checked + .toggle--btn {
+  background-position: 0 0;
+}
+.toggle--switch .toggle--checkbox:checked + .toggle--btn:before {
+  left: calc(100% - 52px);
+}
+.toggle--switch .toggle--checkbox:checked + .toggle--btn .toggle--feature:before {
+  left: 20%;
+}
+.toggle--switch .toggle--checkbox:checked + .toggle--btn .toggle--feature:after {
+  right: -60%;
 }

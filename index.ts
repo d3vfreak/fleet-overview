@@ -1,4 +1,6 @@
 'use strict';
+
+
 /* eslint-disable @typescript-eslint/no-var-requires */
 const needle = require('needle');
 const Swagger = require('swagger-client');
@@ -343,18 +345,7 @@ async function getPublicInfo(playerID: number): Promise<PublicInfo> {
   ).body;
 }
 
-/**
- * Function that removes setInterval timer on socket disconnect
- *
- * @param {object} socket - [TODO:description]
- * @param {object} timer - setInterval timer
- * @return {void}
- */
-function removeTimerOnDisconnect(socket, timer): void {
-  if (socket.disconnected === true) {
-    clearTimeout(timer);
-  }
-}
+
 
 interface CurrentFleet {
   fleet_boss_id: number;
@@ -369,69 +360,27 @@ interface CurrentFleet {
  *
  * @async
  * @param {CurrentFleet} currentFleet - Fleet that needs to be checked out.
- * @param {[TODO:type]} socket - [TODO:description]
  * @param {User} user - Current logged in user
- * @param {[TODO:type]} timers - [TODO:description]
  * @return {Promise<void>} [TODO:description]
  */
 async function fleetCheck(
   currentFleet: CurrentFleet,
-  socket,
+  socket: any,
   user: User,
-  timers
-): Promise<void> {
-  removeTimerOnDisconnect(socket, timers[user.id].fleetTime);
+): Promise<boolean> {
   console.info('[' + user.id + ']', 'getting fleet members');
-  const genChartData = await getFleet(user, currentFleet).catch((res) => {
-    clearTimeout(timers[user.id].fleetTime);
-    delete timers[user.id].fleetTime;
-    return res;
-  });
-  socket.emit('fleetUpdate', genChartData);
-}
-
-/**
- * Function that checks if player is in a fleet. If he is an a fleet it will start a loop to check the fleet members.
- *
- * @async
- * @param {[TODO:type]} socket - [TODO:description]
- * @param {[TODO:type]} timers - [TODO:description]
- * @param {[TODO:type]} user - [TODO:description]
- * @return {[TODO:type]} [TODO:description]
- */
-async function checkIfPlayerIsInFleet(socket, timers, user: User) {
-  removeTimerOnDisconnect(socket, timers[user.id].inFleet);
-  console.info('[' + user.id + ']', 'checking if player is in a fleet.');
-
-  const esi = await connectToEsi(user.refresh_token);
   try {
-    let currentFleet = await esi.apis.Fleets.get_characters_character_id_fleet({
-      character_id: user.id,
-    }).catch(() => {
-      if (timers[user.id].hasOwnProperty('fleetTime') === true) {
-        clearTimeout(timers[user.id].fleetTime);
-      }
-    });
-
-    if (
-      timers[user.id].hasOwnProperty('fleetTime') === false &&
-      currentFleet !== undefined &&
-      currentFleet.body.fleet_boss_id === user.id
-    ) {
-      currentFleet = currentFleet.body;
-      const timer = setInterval(() => {
-        fleetCheck(currentFleet, socket, user, timers);
-      }, 6000);
-      timers[user.id].fleetTime = timer;
-      fleetCheck(currentFleet, socket, user, timers);
-    }
-  } catch (e) {
-    if (timers[user.id].hasOwnProperty('fleetTime') === true) {
-      clearTimeout(timers[user.id].fleetTime);
-      delete timers[user.id].fleetTime;
-    }
+    const genChartData = await getFleet(user, currentFleet);
+    socket.emit('fleetUpdate', genChartData);
+    return Promise.resolve(true);
   }
+  catch(err){
+    return Promise.reject(err);
+  }
+
 }
+
+
 
 server.listen(3000);
 app.use('/', express.static(path.join(__dirname, 'static')));
@@ -493,6 +442,22 @@ app.use('/', express.static(path.join(__dirname, 'static')));
     })();
   });
 
+  async function getCurrentFleet(user): Promise<CurrentFleet> {
+    const esi = await connectToEsi(user.refresh_token);
+    let currentFleet = undefined;
+    try {
+      currentFleet = await esi.apis.Fleets.get_characters_character_id_fleet({
+        character_id: user.id,
+      });
+      if (currentFleet.body.fleet_boss_id === user.id) {
+        return Promise.resolve(currentFleet.body);
+      }
+
+    } catch {
+    }
+    return Promise.reject();
+    //return 0;
+  }
   /**
    * Function that setups the application.
    *
@@ -501,7 +466,6 @@ app.use('/', express.static(path.join(__dirname, 'static')));
    */
   async function run(): Promise<void> {
     const filters = await fleetFilters();
-    const timers = {};
     db = JSON.parse(
       await fs.promises.readFile('./data/tokens.json', {
         encoding: 'utf-8',
@@ -523,11 +487,36 @@ app.use('/', express.static(path.join(__dirname, 'static')));
             : filters[db[auth.user].corp];
         socket.emit('filters', sendFilters);
 
-        const timer = setInterval(() => {
-          checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
-        }, 61000);
-        timers[db[auth.user].id] = { inFleet: timer };
-        checkIfPlayerIsInFleet(socket, timers, db[auth.user]);
+        let timer = {};
+
+
+        socket.on('monitor', async (active) => {
+          if (active) {
+            try {
+              let fleet = await getCurrentFleet(db[auth.user])
+              timer[db[auth.user].id] = setInterval(() => {
+                fleetCheck(fleet,socket, db[auth.user]).catch((err)=>{
+                  clearInterval(timer[db[auth.user].id]);
+                  console.log(err);
+                  socket.emit("gotError", {});
+                });
+              }, 6000);
+              socket.on('disconnect', function () {
+                clearInterval(timer[db[auth.user].id]);
+              });
+            } catch (err){
+              socket.emit("gotError", {});
+            }
+          } else {
+            console.log(timer);
+
+            if (timer[db[auth.user].id] !== undefined) {
+              console.log(timer);
+              clearInterval(timer[db[auth.user].id]);
+              socket.emit("clear");
+            }
+          }
+        });
       });
     });
   }

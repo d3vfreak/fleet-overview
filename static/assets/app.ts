@@ -106,6 +106,31 @@ document.addEventListener('DOMContentLoaded', function () {
       location.reload();
     });
 
+    function monitor() {
+      socket.emit('monitor', this.checked);
+    };
+    function clearChart(){
+      genUI({fcSystem:{},all:{}}, filters);
+    }
+    let toggle =  document.getElementById('toggle--switch') as HTMLInputElement;
+    toggle.checked = false;
+    toggle.addEventListener('change', monitor, false);
+    socket.on('gotError', () => {
+      vex.defaultOptions.className = 'vex-theme-top';
+      vex.dialog.alert({
+        unsafeMessage: `
+    <span style="font-weight:bold;color:red">Error</span><br/>
+    You are either not in a fleet or you are not the fleet boss of your current fleet. Both conditions need to be true if you want to use this tool.`,
+      });
+      toggle.checked = false;
+      clearChart();
+    });
+    socket.on('clear', () => {
+      clearChart();
+    });
+
+
+
     document.getElementById('past-login').style.display = 'flex';
     document.getElementById('pre-login').style.display = 'none';
     fleetDropdown.addEventListener('change', function () {
