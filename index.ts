@@ -1,19 +1,39 @@
 'use strict';
 
 
-/* eslint-disable @typescript-eslint/no-var-requires */
-const needle = require('needle');
-const Swagger = require('swagger-client');
-const express = require('express');
+import needle from "needle";
+import express from 'express';
+import fs from "fs";
+import path from "path";
+import fleetData from "./types";
+import Swagger from 'swagger-client';
+import crypto from 'crypto';
+import { createServer } from 'http';
+import { Server } from "socket.io";
+interface Config {
+  secret: string;
+  id: number;
+  domain: string;
+}
+let tmp: Config;
+
+try {
+  let temp = JSON.parse( fs.readFileSync('./data/config.json', { encoding: 'utf-8' }));
+  tmp = { id: temp.id, secret: temp.secret, domain: temp.domain };
+} catch(err) {
+  console.error(err);
+  process.exit();
+}
+
+const config: Config = tmp;
+tmp=undefined;
 const app = express();
-const server = require('http').createServer(app);
-const io = require('socket.io')(server);
-const config = require('./data/config');
-const path = require('path');
-const fs = require('fs');
-/* eslint-disable @typescript-eslint/no-var-requires */
-const id: string = config.id;
-const domain: string = config.domain;
+const server = createServer(app);
+const io =  new Server(server,{});
+const url = generateURL();
+
+
+
 process.on('unhandledRejection', function (err, promise) {
   console.error(
     'Unhandled rejection (promise: ',
@@ -36,7 +56,7 @@ async function handleErr(fn, msg: String) {
     return await fn; //.catch((e) => Error(`\x1b[31m${msg}\x1b[0m caused by: ${e}`));
   } catch (e) {
     console.log(`\x1b[31m${msg}\x1b[0m caused by: ${e}`);
-    return e;
+    throw new Error(e);
   }
 }
 
@@ -46,7 +66,7 @@ async function handleErr(fn, msg: String) {
  * @return {string} Login url that the user will be redirected to.
  */
 function generateURL(): string {
-  return `https://login.eveonline.com/v2/oauth/authorize?response_type=code&redirect_uri=${domain}/callback/&client_id=${id}&scope=esi-fleets.read_fleet.v1%20esi-location.read_location.v1&state=fleet-checker`;
+  return encodeURI(`https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=${config.domain}/callback/&client_id=${config.id}&scope=esi-fleets.read_fleet.v1 esi-location.read_location.v1&state=fleet-checker`);
 }
 
 interface Token {
@@ -63,8 +83,8 @@ interface Token {
  * @return {Promise<Token>} Returns a token object that has the refresh token in it.
  */
 async function generateToken(tempToken: string): Promise<Token> {
-  const secret: string = config.secret;
-  const base: string = Buffer.from(id + ':' + secret).toString('base64');
+  //const secret: string = ;
+  const base: string = Buffer.from(config.id + ':' + config.secret).toString('base64');
   return (
     await handleErr(
       needle(
@@ -134,7 +154,7 @@ async function auth(refreshToken: string): Promise<Token> {
         'https://login.eveonline.com/v2/oauth/token',
         {
           grant_type: 'refresh_token',
-          client_id: id,
+          client_id: config.id,
           refresh_token: refreshToken,
         },
         { headers: { content_type: 'application/x-www-form-urlencoded' } }
@@ -144,30 +164,7 @@ async function auth(refreshToken: string): Promise<Token> {
   ).body;
 }
 
-interface Pilot {
-  character_id: number;
-  join_time: string;
-  role: string;
-  role_name: string;
-  ship_type_id: number;
-  solar_system_id: number;
-  squad: number;
-  takes_fleet_warp: boolean;
-  wing_id: number;
-}
 
-interface Ship {
-  [key: number]: Pilot;
-}
-
-interface Composition {
-  [key: string]: Ship;
-}
-
-interface Fleet {
-  all: Composition;
-  fcSystem: any;
-}
 
 interface FleetMemberData {
   character_id: number;
@@ -223,12 +220,12 @@ interface User {
 async function getFleet(
   user: User,
   currentFleet: CurrentFleet
-): Promise<Fleet> {
+): Promise<fleetData.Fleet> {
   /* eslint-disable @typescript-eslint/camelcase */
 
   const esi = await connectToEsi(user.refresh_token);
 
-  const result: Fleet = { all: {}, fcSystem: {} };
+  const result: fleetData.Fleet = { all: {}, fcSystem: {} };
   const currentFleetId: number = currentFleet.fleet_id;
   let fleet = await handleErr(
     esi.apis.Fleets.get_fleets_fleet_id_members({
@@ -238,7 +235,6 @@ async function getFleet(
   );
   if (fleet.body === undefined) {
     return Promise.reject(result);
-    //return result;
   }
   fleet = fleet.body;
 
@@ -374,7 +370,7 @@ async function fleetCheck(
     socket.emit('fleetUpdate', genChartData);
     return Promise.resolve(true);
   }
-  catch(err){
+  catch (err) {
     return Promise.reject(err);
   }
 
@@ -383,7 +379,7 @@ async function fleetCheck(
 
 
 server.listen(3000);
-app.use('/', express.static(path.join(__dirname, 'static')));
+app.use('/', express.static(path.join(path.resolve(), 'static')));
 
 {
   let db = undefined;
@@ -396,10 +392,10 @@ app.use('/', express.static(path.join(__dirname, 'static')));
       res.send('login failed');
       return false;
     }
-    const crypto = require('crypto');
+
     const hash = crypto.randomBytes(20).toString('hex');
     (async function () {
-      const token = await generateToken(code);
+      const token = await generateToken(code.toString());
       if (token.refresh_token === undefined) {
         return false;
       }
@@ -432,13 +428,13 @@ app.use('/', express.static(path.join(__dirname, 'static')));
       await fs.promises.writeFile('./data/tokens.json', JSON.stringify(db));
       res.cookie('user', user.CharacterName, {
         maxAge: 31536000,
-        SameSite: 'strict',
+        sameSite: 'strict',
       });
       res.cookie('hash', hash, {
         maxAge: 31536000,
-        SameSite: 'strict',
+        sameSite: 'strict',
       });
-      res.redirect(domain);
+      res.redirect(config.domain);
     })();
   });
 
@@ -456,8 +452,8 @@ app.use('/', express.static(path.join(__dirname, 'static')));
     } catch {
     }
     return Promise.reject();
-    //return 0;
   }
+
   /**
    * Function that setups the application.
    *
@@ -473,7 +469,7 @@ app.use('/', express.static(path.join(__dirname, 'static')));
     );
     io.on('connection', (socket) => {
       socket.on('link', () => {
-        socket.emit('loginURL', generateURL());
+        socket.emit('loginURL', url);
       });
 
       socket.on('login', (auth) => {
@@ -493,26 +489,30 @@ app.use('/', express.static(path.join(__dirname, 'static')));
         socket.on('monitor', async (active) => {
           if (active) {
             try {
-              let fleet = await getCurrentFleet(db[auth.user])
-              timer[db[auth.user].id] = setInterval(() => {
-                fleetCheck(fleet,socket, db[auth.user]).catch((err)=>{
-                  clearInterval(timer[db[auth.user].id]);
-                  console.log(err);
-                  socket.emit("gotError", {});
+              const fleet = await getCurrentFleet(db[auth.user]);
+              timer[db[auth.user].id] = {};
+              timer[db[auth.user].id].timer = setInterval(() => {
+                fleetCheck(fleet, socket, db[auth.user]).catch((err) => {
+                  timer[db[auth.user].id].failCount += 1;
+                  if (timer[db[auth.user].id].failCount === 2) {
+                    clearInterval(timer[db[auth.user].id].timer);
+                    timer[db[auth.user].id] = {};
+                    socket.emit("gotError", {});
+                  }
                 });
               }, 6000);
               socket.on('disconnect', function () {
-                clearInterval(timer[db[auth.user].id]);
+                clearInterval(timer[db[auth.user].id].timer);
+                timer[db[auth.user].id] = {};
               });
-            } catch (err){
+            } catch (err) {
+              //console.log(err);
               socket.emit("gotError", {});
             }
           } else {
-            console.log(timer);
-
             if (timer[db[auth.user].id] !== undefined) {
-              console.log(timer);
-              clearInterval(timer[db[auth.user].id]);
+              clearInterval(timer[db[auth.user].id].timer);
+              timer[db[auth.user].id] = {};
               socket.emit("clear");
             }
           }

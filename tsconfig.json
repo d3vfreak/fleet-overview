@@ -2,9 +2,15 @@
   "compilerOptions": {
     "lib": ["dom"],
     "target": "ES2020",
-    "sourceMap": true,
-    "pretty": true
+    "sourceMap": false,
+    "pretty": false,
+    "allowSyntheticDefaultImports":true,
+    "esModuleInterop":true,
+    "noImplicitAny": false ,
+    "module":"es6",
+    "moduleResolution": "Node",
+    "typeRoots": ["node_modules/@types"],
   },
-  "typeRoots": ["node_modules/@types"],
-  "include": ["index.ts", "static/assets/app.ts"]
+  "include": ["types.d.ts","index.ts","static/assets/app.ts"],
+
 }

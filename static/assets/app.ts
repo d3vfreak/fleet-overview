@@ -1,6 +1,8 @@
-'use strict';
+import * as fleetData from "../../types";
 const ctx = document.getElementById('myChart');
 const url = window.location.href;
+
+type io = any;
 const socket = io.connect(url);
 declare const Chart: any;
 declare const vex: any;
@@ -27,7 +29,7 @@ const myChart = new Chart(ctx, {
   },
 });
 
-function genUI(data: Fleet, fleetTypes): void {
+function genUI(data: fleetData.Fleet, fleetTypes): void {
   setupChart(
     (fleetDropdown as HTMLOptionElement).value,
     data,
@@ -79,99 +81,9 @@ function showHelp() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  SETUP: {
-    let fleet: Fleet = { all: {}, fcSystem: {} };
-    let filters;
-    const user = getCookie('user');
-    const hash = getCookie('hash');
-    if (user === false && hash === false) {
-      document
-        .getElementById('learnMore')
-        .addEventListener('click', function () {
-          showInfo();
-        });
-      socket.on('loginURL', (url) => {
-        window.location.replace(url);
-      });
-      showInfo();
-      break SETUP;
-    }
-
-    socket.emit('login', { user: decodeURI(user.toString()), hash: hash });
-    //socket.emit('filters');
-    socket.on('clearCookies', () => {
-      delete_cookie('user');
-      delete_cookie('hash');
-      location.reload();
-    });
-
-    function monitor() {
-      socket.emit('monitor', this.checked);
-    };
-    function clearChart(){
-      genUI({fcSystem:{},all:{}}, filters);
-    }
-    let toggle =  document.getElementById('toggle--switch') as HTMLInputElement;
-    toggle.checked = false;
-    toggle.addEventListener('change', monitor, false);
-    socket.on('gotError', () => {
-      vex.defaultOptions.className = 'vex-theme-top';
-      vex.dialog.alert({
-        unsafeMessage: `
-    <span style="font-weight:bold;color:red">Error</span><br/>
-    You are either not in a fleet or you are not the fleet boss of your current fleet. Both conditions need to be true if you want to use this tool.`,
-      });
-      toggle.checked = false;
-      clearChart();
-    });
-    socket.on('clear', () => {
-      clearChart();
-    });
-
-
-
-    document.getElementById('past-login').style.display = 'flex';
-    document.getElementById('pre-login').style.display = 'none';
-    fleetDropdown.addEventListener('change', function () {
-      genUI(fleet, filters);
-    });
-
-    document.getElementById('help').addEventListener('click', function () {
-      showHelp();
-    });
-    document.getElementById('logout').addEventListener('click', function () {
-      delete_cookie('user');
-      delete_cookie('hash');
-      location.reload();
-    });
-    systemDropdown.addEventListener('change', function () {
-      genUI(fleet, filters);
-    });
-
-    socket.on('fleetUpdate', (data) => {
-      if (data === undefined) {
-        return;
-      }
-      genUI(data, filters);
-      fleet = data;
-    });
-
-    socket.on('filters', (data) => {
-      filters = data;
-      Object.keys(data).map((filter) => {
-        const option = document.createElement('option');
-        option.setAttribute('value', filter);
-        option.innerHTML = filter;
-        fleetDropdown.appendChild(option);
-      });
-    });
-  }
-});
-
 function setupChart(
   fleetType: string,
-  data: Fleet,
+  data: fleetData.Fleet,
   fleetTypes: {},
   systemsFilter
 ): void {
@@ -184,7 +96,6 @@ function setupChart(
 
   let ships = Object.keys(systemData);
 
-  console.log(systemsFilter);
 
   if (fleetTypes[fleetType] !== undefined) {
     const filter = new Set(fleetTypes[fleetType]);
@@ -245,3 +156,93 @@ function setupChart(
   };
   myChart.update(0);
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+  SETUP: {
+    let fleet: fleetData.Fleet = { all: {}, fcSystem: {} };
+    let filters;
+    const user = getCookie('user');
+    const hash = getCookie('hash');
+    if (user === false && hash === false) {
+      document
+        .getElementById('learnMore')
+        .addEventListener('click', function () {
+          showInfo();
+        });
+      socket.on('loginURL', (url) => {
+        window.location.replace(url);
+      });
+      showInfo();
+      break SETUP;
+    }
+
+    socket.emit('login', { user: decodeURI(user.toString()), hash: hash });
+    //socket.emit('filters');
+    socket.on('clearCookies', () => {
+      delete_cookie('user');
+      delete_cookie('hash');
+      location.reload();
+    });
+
+    function monitor() {
+      socket.emit('monitor', this.checked);
+    };
+    function clearChart() {
+      genUI({ fcSystem: {}, all: {} }, filters);
+    }
+    let toggle = document.getElementById('toggle--switch') as HTMLInputElement;
+    toggle.checked = false;
+    toggle.addEventListener('change', monitor, false);
+    socket.on('gotError', () => {
+      vex.defaultOptions.className = 'vex-theme-top';
+      vex.dialog.alert({
+        unsafeMessage: `
+    <span style="font-weight:bold;color:red">Error</span><br/>
+    You are either not in a fleet or you are not the fleet boss of your current fleet. Both conditions need to be true if you want to use this tool.`,
+      });
+      toggle.checked = false;
+      clearChart();
+    });
+    socket.on('clear', () => {
+      clearChart();
+    });
+
+
+
+    document.getElementById('past-login').style.display = 'flex';
+    document.getElementById('pre-login').style.display = 'none';
+    fleetDropdown.addEventListener('change', function () {
+      genUI(fleet, filters);
+    });
+
+    document.getElementById('help').addEventListener('click', function () {
+      showHelp();
+    });
+    document.getElementById('logout').addEventListener('click', function () {
+      delete_cookie('user');
+      delete_cookie('hash');
+      location.reload();
+    });
+    systemDropdown.addEventListener('change', function () {
+      genUI(fleet, filters);
+    });
+
+    socket.on('fleetUpdate', (data) => {
+      if (data === undefined) {
+        return;
+      }
+      genUI(data, filters);
+      fleet = data;
+    });
+
+    socket.on('filters', (data) => {
+      filters = data;
+      Object.keys(data).map((filter) => {
+        const option = document.createElement('option');
+        option.setAttribute('value', filter);
+        option.innerHTML = filter;
+        fleetDropdown.appendChild(option);
+      });
+    });
+  }
+});

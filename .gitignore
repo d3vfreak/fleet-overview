@@ -3,7 +3,7 @@
 !data
 !.gitignore
 !package.json
-!index.ts
+!*.ts
 !LICENSE.md
 !README.md
 !static
